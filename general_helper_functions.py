@@ -65,6 +65,7 @@ def get_start_file(DEFAULT_START_FILE: str) -> str:
 
 
 def return_all_full_file_paths(INPUT_DIRECTORY):
+    """Returns all the full file paths (absolute paths instead of relative) of all the files in the input directory."""
     all_file_paths_from_input = glob.glob(
         os.path.join(INPUT_DIRECTORY, "**/*.md"), recursive=True
     )  # get all .md files in the input directory

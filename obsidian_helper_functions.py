@@ -1,5 +1,6 @@
 from enum import Enum
 import glob
+import json
 import os
 from pathlib import Path
 from pprint import pprint
@@ -106,25 +107,36 @@ def return_linked_files(all_file_lines: List[str], file_extension=r"\..+") -> Li
 
 
 class File_Group:
-    def __init__(self, file_path: str, child_file_groups: list):
+    def __init__(self, file_path: str, child_file_groups: list, parent_file=None):
         self.file_path = Path(file_path)
+        self.parent_file = parent_file
         self._child_file_groups = child_file_groups
-        self.number_of_child_file_groups = len(child_file_groups)
         for index, child_group in enumerate(self._child_file_groups):
             setattr(self, f"child_file_group_{index}", child_group)
 
+    @property
+    def number_of_child_file_groups(self):
+        return len(self._child_file_groups)
+
+    def get_depth(self):
+        level = 0
+        raise NotImplementedError
+    
     def __repr__(self) -> str:
         return f"File_Group({self.file_path}, {self._child_file_groups})"
 
-    def __str__(self) -> str:
-        display_text = f"{self.file_path}"
-        for index, group in enumerate([x for x in self._child_file_groups]):
-            display_text += f"\n{'  '*(index+1)}-{index+1}- {group}"
-        return display_text
+    # def __str__(self) -> str:
+    #     display_text = f"{self.file_path}"
+    #     for index, group in enumerate([x for x in self._child_file_groups]):
+    #         display_text += f"\n{'  '*(index+1)}-{index+1}- {group}"
+    #     return display_text
 
 
 def return_linked_files_V3(
-    current_file, max_link_depth, root_directory, parent_file=None
+    current_file: str,
+    max_link_depth: int,
+    root_directory: str,
+    parent_file: str | None = None,
 ):
     if parent_file == None:
         parent_file = current_file
@@ -136,7 +148,7 @@ def return_linked_files_V3(
 
     if max_link_depth == 0:
         # Just return current file in group without going deeper
-        file_group = File_Group(current_file, [])
+        file_group = File_Group(current_file, [], parent_file)
     else:
         # more files are linked in the current file and program is allowed to go deeper
         child_file_groups = []
@@ -146,7 +158,7 @@ def return_linked_files_V3(
                 linked_file, max_link_depth - 1, root_directory, parent_file=None
             )
             child_file_groups.append(child_group)
-        file_group = File_Group(current_file, child_file_groups)
+        file_group = File_Group(current_file, child_file_groups, parent_file)
     return file_group
 
 
@@ -155,4 +167,5 @@ start_file_path = r"D:\Obsidian\Recursive file 1.md"
 final_file_group = return_linked_files_V3(
     start_file_path, 3, os.path.dirname(start_file_path)
 )
-print(final_file_group)
+string = str(final_file_group)
+pprint(str(final_file_group))
