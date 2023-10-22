@@ -80,3 +80,19 @@ def find_file_path(directory, base_name):
         for filename in fnmatch.filter(filenames, f"{base_name}.*"):
             return os.path.join(root, str(filename))
     return None
+
+
+def convert_file_base_names_to_full_path(
+    linked_file_base_names: list[str], root_directory: str
+):
+    """Converts a list of file base names to a list of full paths."""
+    linked_files = []
+    for linked_file_base_name in linked_file_base_names:
+        # convert to full path
+        linked_file = find_file_path(root_directory, linked_file_base_name)
+        if linked_file != None:
+            linked_files.append(linked_file)
+        else:
+            print(f"Linked file not found: {linked_file_base_name}")
+            raise FileNotFoundError
+    return linked_files

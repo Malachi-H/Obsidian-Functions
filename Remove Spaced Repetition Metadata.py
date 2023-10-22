@@ -32,7 +32,7 @@ if __name__ == "__main__":
             ) and obs.has_yaml_tag(TAG_NAMES["flashcards"], all_file_lines):
                 # print("Has both tags")
 
-                linked_files = obs.return_linked_files(all_file_lines)
+                linked_files = obs.return_linked_base_names(all_file_lines)
 
                 obs.copy_attachments_to_new_directory(
                     linked_files,

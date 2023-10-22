@@ -86,7 +86,9 @@ def copy_attachments_to_new_directory(
                     print(file_path)
 
 
-def return_linked_files(all_file_lines: List[str], file_extension=r"\..+") -> List[str]:
+def return_linked_base_names(
+    all_file_lines: List[str], file_extension=r"\..+"
+) -> List[str]:
     """Returns a list of all the linked attachments in the file as paths.
     Links must follow the [[{attachment_path-name}.{file_extension}]] format.
 
@@ -121,7 +123,7 @@ class File_Group:
     def get_depth(self):
         level = 0
         raise NotImplementedError
-    
+
     def __repr__(self) -> str:
         return f"File_Group({self.file_path}, {self._child_file_groups})"
 
@@ -144,7 +146,7 @@ def return_linked_files_V3(
     with open(current_file, "r", encoding="utf8") as f:
         all_file_lines = f.readlines()
 
-    linked_files = return_linked_files(all_file_lines, file_extension=r"")
+    linked_files = return_linked_base_names(all_file_lines, file_extension=r"")
 
     if max_link_depth == 0:
         # Just return current file in group without going deeper
@@ -168,4 +170,75 @@ final_file_group = return_linked_files_V3(
     start_file_path, 3, os.path.dirname(start_file_path)
 )
 string = str(final_file_group)
-pprint(str(final_file_group))
+
+# ################################################################################
+
+
+class FileTreeNode:
+    def __init__(self, file_path):
+        self.file_path = Path(file_path)
+        self.children = []
+        self.parent = None
+
+    def add_child(self, child):
+        self.children.append(child)
+        child.parent = self
+
+    def get_depth(self):
+        level = 0
+        p = self.parent
+        while p:
+            level += 1
+            p = p.parent
+        return level
+
+    def print_tree(self):
+        spaces = " " * self.get_depth() * 3
+        prefix = spaces + "|__" if self.parent else ""
+        print(prefix + str(self.file_path))
+        if self.children:
+            for child in self.children:
+                child.print_tree()
+
+
+def return_linked_files_V4(
+    root_directory: str,
+    max_link_depth: int,
+    current_file: str,
+    _parent_node: FileTreeNode | None = None,
+):
+    current_node = FileTreeNode(current_file)
+    if _parent_node != None:
+        _parent_node.add_child(current_node)
+    if max_link_depth == 0:
+        # current_file is a leaf node
+        pass
+    else:
+        with open(current_file, "r", encoding="utf8") as f:
+            all_file_lines = f.readlines()
+        linked_file_base_names = return_linked_base_names(
+            all_file_lines, file_extension=r""
+        )
+        linked_files = help_funcs.convert_file_base_names_to_full_path(
+            linked_file_base_names, root_directory
+        )
+
+        for linked_file in linked_files:
+            return_linked_files_V4(
+                root_directory,
+                max_link_depth - 1,
+                current_file=linked_file,
+                _parent_node=current_node,
+            )
+    return current_node
+
+
+start_file_path = r"D:\Obsidian\Recursive file 1.md"
+root_tree = FileTreeNode(start_file_path)
+result = return_linked_files_V4(
+    os.path.dirname(start_file_path),
+    max_link_depth=5,
+    current_file=start_file_path,
+)
+result.print_tree()
+pass
