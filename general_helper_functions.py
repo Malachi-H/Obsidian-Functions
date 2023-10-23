@@ -84,9 +84,10 @@ def find_file_path(directory, base_name):
 
 def convert_file_base_names_to_full_path(
     linked_file_base_names: list[str], root_directory: str
-):
+) -> tuple[list[str], list[str]]:
     """Converts a list of file base names to a list of full paths."""
     linked_files = []
+    un_finable_files = []
     for linked_file_base_name in linked_file_base_names:
         # convert to full path
         linked_file = find_file_path(root_directory, linked_file_base_name)
@@ -94,5 +95,9 @@ def convert_file_base_names_to_full_path(
             linked_files.append(linked_file)
         else:
             print(f"Linked file not found: {linked_file_base_name}")
-            raise FileNotFoundError
-    return linked_files
+            if linked_file_base_name[-1] == " ":
+                print(
+                    "Looks like there is a trailing space at the end of the file name!"
+                )
+            un_finable_files.append(linked_file_base_name)
+    return linked_files, un_finable_files

@@ -87,7 +87,10 @@ def copy_attachments_to_new_directory(
 
 
 def return_linked_base_names(
-    all_file_lines: List[str], file_extension=r"\..+"
+    all_file_lines: List[str],
+    file_extension=r"\..+",
+    ignore_extension=False,
+    must_have_no_extension=False,
 ) -> List[str]:
     """Returns a list of all the linked attachments in the file as paths.
     Links must follow the [[{attachment_path-name}.{file_extension}]] format.
@@ -95,16 +98,59 @@ def return_linked_base_names(
     all_file_lines: All the lines of the file as a list of strings.
     file_extension: The file extension of the attachments to search for in the format r"\.{file_extension}". eg. file_extension = r"\.pdf" for pdf files.
 
-    To ignore extension (return regardless of ext or lack there of) use file_extension = r""
     """
-    all_linked_wikilink_attachment_paths = []
-    for line in all_file_lines:
-        wikilink_attachment_MatchGroup = re.search(
-            rf"\[\[(.*{file_extension})\]\]", line
-        )  # must follow [[{attachment_path-name}.{file_extension}]] format
-        if wikilink_attachment_MatchGroup != None:
-            wikilink_attachment_path = wikilink_attachment_MatchGroup.group(1)
-            all_linked_wikilink_attachment_paths.append(wikilink_attachment_path)
+    # all_file_lines = [
+    #     "file start",
+    #     "this is a file with [[normal link]] this is end",
+    #     "this is a file with [[link with extension.pdf]] this is end",
+    #     "this is a file with [[link.WITH A DOT]] this is end",
+    #     "this is a file with [[link with alias|alias]] this is end",
+    #     "this is a file with [[link with header#header]] this is end",
+    #     "this is a file with [[link with header#header|and alias]] this is end",
+    #     "this is a file with [[multiple]] [[links]] of [[different|types]] [[includingfile.pdf]]this is end",
+    # ]
+
+    if must_have_no_extension:
+        all_linked_wikilink_attachment_paths = []
+        for line in all_file_lines:
+            matches = re.findall(
+                r"\[\[(.*?)\]\]", line
+            )  # must be text surrounded by [[ and ]]
+            for match in matches:
+                # must handel the unusual case of multiple matches in 1 line
+                if "|" in match:
+                    # check if file has an alias
+                    match = match.split("|")[0]
+                if "#" in match:
+                    # check if file has a header
+                    match = match.split("#")[0]
+                if "." in match:
+                    # check if file has an extension or just contains a period
+                    num_chars_after_period = len(match.split(".")[-1])
+                    if num_chars_after_period > 4:
+                        all_linked_wikilink_attachment_paths.append(match)
+                    else:
+                        continue
+                else:
+                    # file has no extension, header, or alias
+                    all_linked_wikilink_attachment_paths.append(match)
+    else:
+        if not ignore_extension:
+            regex = rf"\[\[(.*{file_extension})\]\]"
+        elif ignore_extension:
+            regex = rf"\[\[(.*)\]\]"
+        else:
+            raise ValueError("Unknown error occurred.")
+
+        all_linked_wikilink_attachment_paths = []
+        for line in all_file_lines:
+            wikilink_attachment_MatchGroups = re.finditer(
+                regex, line
+            )  # must follow [[{attachment_path-name}.{file_extension}]] format
+            for group in wikilink_attachment_MatchGroups:
+                # must handel the unusual case of multiple groups
+                match = group.groups()
+                all_linked_wikilink_attachment_paths.append(match[0])
     return all_linked_wikilink_attachment_paths
 
 
@@ -164,13 +210,6 @@ def return_linked_files_V3(
     return file_group
 
 
-start_file_path = r"D:\Obsidian\Recursive file 1.md"
-
-final_file_group = return_linked_files_V3(
-    start_file_path, 3, os.path.dirname(start_file_path)
-)
-string = str(final_file_group)
-
 # ################################################################################
 
 
@@ -217,9 +256,9 @@ def return_linked_files_V4(
         with open(current_file, "r", encoding="utf8") as f:
             all_file_lines = f.readlines()
         linked_file_base_names = return_linked_base_names(
-            all_file_lines, file_extension=r""
+            all_file_lines, must_have_no_extension=True
         )
-        linked_files = help_funcs.convert_file_base_names_to_full_path(
+        linked_files, un_finable_files = help_funcs.convert_file_base_names_to_full_path(
             linked_file_base_names, root_directory
         )
 
@@ -233,11 +272,11 @@ def return_linked_files_V4(
     return current_node
 
 
-start_file_path = r"D:\Obsidian\Recursive file 1.md"
-root_tree = FileTreeNode(start_file_path)
+start_file_path = r"D:\Obsidian\School\School Index.md"
+vault_folder = r"D:\Obsidian"
 result = return_linked_files_V4(
-    os.path.dirname(start_file_path),
-    max_link_depth=5,
+    vault_folder,
+    max_link_depth=10,
     current_file=start_file_path,
 )
 result.print_tree()
