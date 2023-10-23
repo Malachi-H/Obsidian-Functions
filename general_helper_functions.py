@@ -82,9 +82,9 @@ def find_file_path(directory: str, base_name: str) -> str | None:
         # Handling this is a pain.
         segments = base_name.split("/")
         real_base_name = segments[-1]
-        relative_path = "/".join(segments[:-1])
-        return os.path.join(directory, relative_path)
-
+        relative_path = "\\".join(segments[:-1])
+        more_specific_path = os.path.join(directory, relative_path)
+        return find_file_path(more_specific_path, real_base_name)
     else:
         for current_folder, subfolders, filenames in os.walk(directory):
             for filename in fnmatch.filter(filenames, f"{base_name}.*"):
@@ -104,7 +104,7 @@ def convert_file_base_names_to_full_path(
         if linked_file != None:
             linked_files.append(linked_file)
         else:
-            print(f"Linked file not found: {linked_file_base_name}")
+            print(f"Linked file not found: {linked_file_base_name}\n")
             if linked_file_base_name[-1] == " ":
                 print(
                     "Looks like there is a trailing space at the end of the file name!"

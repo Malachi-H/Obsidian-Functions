@@ -215,7 +215,7 @@ def return_linked_files_V3(
 
 class FileTreeNode:
     def __init__(self, file_path):
-        self.file_path = Path(file_path)
+        self.file_path: Path = Path(file_path)
         self.children = []
         self.parent = None
         self.unfindable_files: list[str] = []
@@ -235,6 +235,14 @@ class FileTreeNode:
             p = p.parent
         return level
 
+    def list_all_parent_files(self) -> list[Path]:
+        parents = []
+        p = self.parent
+        while p:
+            parents.append(p.file_path)
+            p = p.parent
+        return parents
+
     def print_tree(self):
         spaces = " " * self.get_depth() * 3
         prefix = spaces + "|__" if self.parent else ""
@@ -243,7 +251,7 @@ class FileTreeNode:
             for file in self.unfindable_files:
                 print(
                     spaces
-                    + f"  |__{file} -------------------------------------------------------------------------------------"
+                    + f"  |__{file} <<<---- file_does_not_exist_or_is_unfindable"
                 )
         if self.children:
             for child in self.children:
@@ -274,23 +282,32 @@ def return_linked_files_V4(
         ) = help_funcs.convert_file_base_names_to_full_path(
             linked_file_base_names, root_directory
         )
-        
-        
-        
+
         for file in un_finable_files:
             current_node.add_unfindable_file(file)
 
         for linked_file in linked_files:
-            return_linked_files_V4(
-                root_directory,
-                max_link_depth - 1,
-                current_file=linked_file,
-                _parent_node=current_node,
-            )
+            current_file_is_owned_by_parent = False
+            if current_node.parent:
+                # Need to check to see if the current file has existed in a previous node
+                # This prevents unwanted recursion through files that are linked into loops
+
+                parent_files = current_node.list_all_parent_files()
+                for parent_file in parent_files:
+                    if Path(linked_file).resolve() == parent_file.resolve():
+                        current_file_is_owned_by_parent = True
+            if not current_file_is_owned_by_parent:
+                return_linked_files_V4(
+                    root_directory,
+                    max_link_depth - 1,
+                    current_file=linked_file,
+                    _parent_node=current_node,
+                )
     return current_node
 
 
 start_file_path = r"D:\Obsidian\School\School Index.md"
+# start_file_path = r"D:\Obsidian\Harder Recursion 1.md"
 vault_folder = r"D:\Obsidian"
 result = return_linked_files_V4(
     vault_folder,
