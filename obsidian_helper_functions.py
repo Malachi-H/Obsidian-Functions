@@ -92,23 +92,13 @@ def return_linked_base_names(
     ignore_extension=False,
     must_have_no_extension=False,
 ) -> List[str]:
-    """Returns a list of all the linked attachments in the file as paths.
+    r"""Returns a list of all the linked attachments in the file as paths.
     Links must follow the [[{attachment_path-name}.{file_extension}]] format.
 
     all_file_lines: All the lines of the file as a list of strings.
     file_extension: The file extension of the attachments to search for in the format r"\.{file_extension}". eg. file_extension = r"\.pdf" for pdf files.
 
     """
-    # all_file_lines = [
-    #     "file start",
-    #     "this is a file with [[normal link]] this is end",
-    #     "this is a file with [[link with extension.pdf]] this is end",
-    #     "this is a file with [[link.WITH A DOT]] this is end",
-    #     "this is a file with [[link with alias|alias]] this is end",
-    #     "this is a file with [[link with header#header]] this is end",
-    #     "this is a file with [[link with header#header|and alias]] this is end",
-    #     "this is a file with [[multiple]] [[links]] of [[different|types]] [[includingfile.pdf]]this is end",
-    # ]
 
     if must_have_no_extension:
         all_linked_wikilink_attachment_paths = []
