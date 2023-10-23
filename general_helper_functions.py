@@ -75,11 +75,21 @@ def return_all_full_file_paths(INPUT_DIRECTORY):
     return all_files_full_paths
 
 
-def find_file_path(directory, base_name):
-    for root, dirnames, filenames in os.walk(directory):
-        for filename in fnmatch.filter(filenames, f"{base_name}.*"):
-            return os.path.join(root, str(filename))
-    return None
+def find_file_path(directory: str, base_name: str) -> str | None:
+    if "/" in base_name:
+        # for use with Obsidian, the base_name can sometime be a file path relative to the vault root
+        # this occurs when there are multiple files with the same basename, requiring a more specific pointer to the file.
+        # Handling this is a pain.
+        segments = base_name.split("/")
+        real_base_name = segments[-1]
+        relative_path = "/".join(segments[:-1])
+        return os.path.join(directory, relative_path)
+
+    else:
+        for current_folder, subfolders, filenames in os.walk(directory):
+            for filename in fnmatch.filter(filenames, f"{base_name}.*"):
+                return os.path.join(current_folder, str(filename))
+        return None
 
 
 def convert_file_base_names_to_full_path(

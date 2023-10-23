@@ -218,10 +218,14 @@ class FileTreeNode:
         self.file_path = Path(file_path)
         self.children = []
         self.parent = None
+        self.unfindable_files: list[str] = []
 
     def add_child(self, child):
         self.children.append(child)
         child.parent = self
+
+    def add_unfindable_file(self, file_base_name):
+        self.unfindable_files.append(file_base_name)
 
     def get_depth(self):
         level = 0
@@ -235,6 +239,12 @@ class FileTreeNode:
         spaces = " " * self.get_depth() * 3
         prefix = spaces + "|__" if self.parent else ""
         print(prefix + str(self.file_path))
+        if self.unfindable_files:
+            for file in self.unfindable_files:
+                print(
+                    spaces
+                    + f"  |__{file} -------------------------------------------------------------------------------------"
+                )
         if self.children:
             for child in self.children:
                 child.print_tree()
@@ -258,9 +268,17 @@ def return_linked_files_V4(
         linked_file_base_names = return_linked_base_names(
             all_file_lines, must_have_no_extension=True
         )
-        linked_files, un_finable_files = help_funcs.convert_file_base_names_to_full_path(
+        (
+            linked_files,
+            un_finable_files,
+        ) = help_funcs.convert_file_base_names_to_full_path(
             linked_file_base_names, root_directory
         )
+        
+        
+        
+        for file in un_finable_files:
+            current_node.add_unfindable_file(file)
 
         for linked_file in linked_files:
             return_linked_files_V4(
