@@ -147,8 +147,8 @@ def return_linked_base_names(
 class FileTreeNode:
     def __init__(self, file_path):
         self.file_path: Path = Path(file_path)
-        self.children = []
-        self.parent = None
+        self.children: list["FileTreeNode"] = []
+        self.parent: "FileTreeNode" | None = None
         self.unfindable_files: list[str] = []
 
     def add_child(self, child):
@@ -174,6 +174,12 @@ class FileTreeNode:
             p = p.parent
         return parents
 
+    def sort_tree_by_number_of_children(self):
+        # current node is not root
+        self.children.sort(key=lambda x: len(x.children), reverse=False)
+        for child in self.children:
+            child.sort_tree_by_number_of_children()
+
     def print_tree(self):
         spaces = " " * self.get_depth() * 3
         prefix = spaces + "|__" if self.parent else ""
@@ -181,12 +187,52 @@ class FileTreeNode:
         if self.unfindable_files:
             for file in self.unfindable_files:
                 print(
-                    spaces
-                    + f"  |__{file} <<<---- file_does_not_exist_or_is_unfindable"
+                    spaces + f"  |__{file} <<<---- file_does_not_exist_or_is_unfindable"
                 )
         if self.children:
             for child in self.children:
                 child.print_tree()
+
+    def print_improved_tree(self):
+        if self.parent == None:
+            # If the current node is the root node
+            print(self.file_path)
+            for child in self.children:
+                child.print_improved_tree()
+        else:
+            if self.parent.children[-1] == self:
+                # check if current node is the last node in the list of children from the parent ie. last born child
+                if self.children:
+                    # current node has children
+                    parent_depth = self.parent.get_depth()
+
+                    print(parent_depth * "|    " + "|    ")
+                    print(parent_depth * "|    " + "└───" + str(self.file_path))
+                    for child in self.children:
+                        child.print_improved_tree()
+                else:
+                    # current node does not have children
+                    # check all parent to see how many are last born children (should not have "|    " printed if last born child)
+                    ############################################################################################################## 
+                    print(
+                        self.parent.get_depth() * "|    " + "    " + str(self.file_path)
+                    )
+            else:
+                if self.children:
+                    # current node has children
+                    parent_depth = self.parent.get_depth()
+
+                    print(parent_depth * "|    " + "|    ")
+                    print(parent_depth * "|    " + "├───" + str(self.file_path))
+                    for child in self.children:
+                        child.print_improved_tree()
+                else:
+                    # current node does not have children
+                    print(
+                        self.parent.get_depth() * "|    "
+                        + "|    "
+                        + str(self.file_path)
+                    )
 
 
 def return_linked_files_V4(
@@ -245,5 +291,6 @@ result = return_linked_files_V4(
     max_link_depth=10,
     current_file=start_file_path,
 )
-result.print_tree()
+result.sort_tree_by_number_of_children()
+result.print_improved_tree()
 pass

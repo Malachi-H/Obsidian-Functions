@@ -84,12 +84,12 @@ def find_file_path(directory: str, base_name: str) -> str | None:
         real_base_name = segments[-1]
         relative_path = "\\".join(segments[:-1])
         more_specific_path = os.path.join(directory, relative_path)
-        return find_file_path(more_specific_path, real_base_name)
-    else:
-        for current_folder, subfolders, filenames in os.walk(directory):
-            for filename in fnmatch.filter(filenames, f"{base_name}.*"):
-                return os.path.join(current_folder, str(filename))
-        return None
+        directory = more_specific_path
+        base_name = real_base_name
+    for current_folder, subfolders, filenames in os.walk(directory):
+        for filename in fnmatch.filter(filenames, f"{base_name}.*"):
+            return os.path.join(current_folder, str(filename))
+    return None
 
 
 def convert_file_base_names_to_full_path(
