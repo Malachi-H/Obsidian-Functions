@@ -174,20 +174,28 @@ class FileTreeNode:
             p = p.parent
         return parents
 
-    def count_all_descendent(self, node: "FileTreeNode") -> int:
+    def count_all_descendants(self, node: "FileTreeNode") -> int:
         count = 0
         for child in node.children:
             count += 1
-            count += self.count_all_descendent(child)
+            count += self.count_all_descendants(child)
         return count
 
     def sort_tree_by_number_of_children(self):
         # current node is not root
         self.children.sort(
-            key=lambda node: self.count_all_descendent(node), reverse=False
+            key=lambda node: self.count_all_descendants(node), reverse=False
         )
         for child in self.children:
             child.sort_tree_by_number_of_children()
+
+    def sort_tree_by_alphabetical_order_and_number_of_children(self):
+        self.children.sort(
+            key=lambda node: (self.count_all_descendants(node), node.file_path.name),
+            reverse=False,
+        )
+        for child in self.children:
+            child.sort_tree_by_alphabetical_order_and_number_of_children()
 
     def print_improved_tree(self):
         if self.parent == None:
@@ -287,6 +295,6 @@ result = return_linked_files_V4(
     max_link_depth=3,
     current_file=start_file_path,
 )
-result.sort_tree_by_number_of_children()
+result.sort_tree_by_alphabetical_order_and_number_of_children()
 result.print_improved_tree()
 pass
