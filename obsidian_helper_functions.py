@@ -174,24 +174,20 @@ class FileTreeNode:
             p = p.parent
         return parents
 
+    def count_all_descendent(self, node: "FileTreeNode") -> int:
+        count = 0
+        for child in node.children:
+            count += 1
+            count += self.count_all_descendent(child)
+        return count
+
     def sort_tree_by_number_of_children(self):
         # current node is not root
-        self.children.sort(key=lambda x: len(x.children), reverse=False)
+        self.children.sort(
+            key=lambda node: self.count_all_descendent(node), reverse=False
+        )
         for child in self.children:
             child.sort_tree_by_number_of_children()
-
-    def print_tree(self):
-        spaces = " " * self.get_depth() * 3
-        prefix = spaces + "|__" if self.parent else ""
-        print(prefix + str(self.file_path))
-        if self.unfindable_files:
-            for file in self.unfindable_files:
-                print(
-                    spaces + f"  |__{file} <<<---- file_does_not_exist_or_is_unfindable"
-                )
-        if self.children:
-            for child in self.children:
-                child.print_tree()
 
     def print_improved_tree(self):
         if self.parent == None:
@@ -213,7 +209,7 @@ class FileTreeNode:
                 else:
                     # current node does not have children
                     # check all parent to see how many are last born children (should not have "|    " printed if last born child)
-                    ############################################################################################################## 
+                    ##############################################################################################################
                     print(
                         self.parent.get_depth() * "|    " + "    " + str(self.file_path)
                     )
@@ -288,7 +284,7 @@ start_file_path = r"D:\Obsidian\School\School Index.md"
 vault_folder = r"D:\Obsidian"
 result = return_linked_files_V4(
     vault_folder,
-    max_link_depth=10,
+    max_link_depth=3,
     current_file=start_file_path,
 )
 result.sort_tree_by_number_of_children()
