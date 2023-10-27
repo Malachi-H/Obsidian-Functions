@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 from pprint import pprint
+from random import randint, random
 import re
 import shutil
 from typing import List, Tuple
@@ -150,6 +151,7 @@ class FileTreeNode:
         self.children: list["FileTreeNode"] = []
         self.parent: "FileTreeNode" | None = None
         self.unfindable_files: list[str] = []
+        self.id = randint(0, 1000000) # TODO: remove this
 
     def add_child(self, child):
         self.children.append(child)
@@ -166,11 +168,11 @@ class FileTreeNode:
             p = p.parent
         return level
 
-    def list_all_parent_files(self) -> list[Path]:
+    def list_all_parents(self) -> list["FileTreeNode"]:
         parents = []
         p = self.parent
         while p:
-            parents.append(p.file_path)
+            parents.append(p)
             p = p.parent
         return parents
 
@@ -219,7 +221,9 @@ class FileTreeNode:
                     # check all parent to see how many are last born children (should not have "|    " printed if last born child)
                     ##############################################################################################################
                     print(
-                        self.parent.get_depth() * "|    " + "    " + str(self.file_path.name)
+                        self.parent.get_depth() * "|    "
+                        + "    "
+                        + str(self.file_path.name)
                     )
             else:
                 if self.children:
@@ -237,8 +241,10 @@ class FileTreeNode:
                         + "|    "
                         + str(self.file_path.name)
                     )
+
     def __repr__(self) -> str:
-        return f"FileTreeNode({self.file_path})"
+        return f"FileTreeNode({self.file_path}) - {self.id}"
+
 
 def return_linked_files_V4(
     root_directory: str,
@@ -247,12 +253,20 @@ def return_linked_files_V4(
     _parent_node: FileTreeNode | None = None,
 ):
     current_node = FileTreeNode(current_file)
-    if _parent_node != None:
+    current_file_exists_as_parent = False
+    if current_node.parent:
+        # Need to check to see if the current file has existed in a previous node
+        # This prevents unwanted recursion through files that are linked into loops
+
+        parents = current_node.list_all_parents()
+        for parent in parents:
+            if Path(current_file).resolve() == parent.file_path.resolve():
+                current_file_exists_as_parent = True
+                current_node = parent
+
+    if _parent_node != None and not current_file_exists_as_parent:
         _parent_node.add_child(current_node)
-    if max_link_depth == 0:
-        # current_file is a leaf node
-        pass
-    else:
+    if max_link_depth != 0 and not current_file_exists_as_parent:
         with open(current_file, "r", encoding="utf8") as f:
             all_file_lines = f.readlines()
         linked_file_base_names = return_linked_base_names(
@@ -269,16 +283,7 @@ def return_linked_files_V4(
             current_node.add_unfindable_file(file)
 
         for linked_file in linked_files:
-            current_file_is_owned_by_parent = False
-            if current_node.parent:
-                # Need to check to see if the current file has existed in a previous node
-                # This prevents unwanted recursion through files that are linked into loops
-
-                parent_files = current_node.list_all_parent_files()
-                for parent_file in parent_files:
-                    if Path(linked_file).resolve() == parent_file.resolve():
-                        current_file_is_owned_by_parent = True
-            if not current_file_is_owned_by_parent:
+            if not current_file_exists_as_parent:
                 return_linked_files_V4(
                     root_directory,
                     max_link_depth - 1,
