@@ -211,7 +211,7 @@ class FileTreeNode:
                     parent_depth = self.parent.get_depth()
 
                     print(parent_depth * "|    " + "|    ")
-                    print(parent_depth * "|    " + "└───" + str(self.file_path))
+                    print(parent_depth * "|    " + "└───" + str(self.file_path.name))
                     for child in self.children:
                         child.print_improved_tree()
                 else:
@@ -219,7 +219,7 @@ class FileTreeNode:
                     # check all parent to see how many are last born children (should not have "|    " printed if last born child)
                     ##############################################################################################################
                     print(
-                        self.parent.get_depth() * "|    " + "    " + str(self.file_path)
+                        self.parent.get_depth() * "|    " + "    " + str(self.file_path.name)
                     )
             else:
                 if self.children:
@@ -227,7 +227,7 @@ class FileTreeNode:
                     parent_depth = self.parent.get_depth()
 
                     print(parent_depth * "|    " + "|    ")
-                    print(parent_depth * "|    " + "├───" + str(self.file_path))
+                    print(parent_depth * "|    " + "├───" + str(self.file_path.name))
                     for child in self.children:
                         child.print_improved_tree()
                 else:
@@ -235,9 +235,10 @@ class FileTreeNode:
                     print(
                         self.parent.get_depth() * "|    "
                         + "|    "
-                        + str(self.file_path)
+                        + str(self.file_path.name)
                     )
-
+    def __repr__(self) -> str:
+        return f"FileTreeNode({self.file_path})"
 
 def return_linked_files_V4(
     root_directory: str,
@@ -288,7 +289,7 @@ def return_linked_files_V4(
 
 
 start_file_path = r"D:\Obsidian\School\School Index.md"
-# start_file_path = r"D:\Obsidian\Harder Recursion 1.md"
+start_file_path = r"D:\Obsidian\School\Maths\Maths.md"
 vault_folder = r"D:\Obsidian"
 result = return_linked_files_V4(
     vault_folder,
