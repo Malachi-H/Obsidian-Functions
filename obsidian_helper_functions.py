@@ -157,6 +157,7 @@ class FileTreeNode:
             self.christmas_card_list = (
                 []
             )  # list of all family members. Only stored for the root node. I can have the occasional fun with names.
+        self._has_been_sorted = False
 
     @property
     def is_last_born_child(self):
@@ -189,7 +190,7 @@ class FileTreeNode:
             p = p.parent
         return parents
 
-    def count_all_descendants(self, node: "FileTreeNode", depth_limit = 10000) -> int:
+    def count_all_descendants(self, node: "FileTreeNode", depth_limit=10000) -> int:
         count = 0
         for child in node.children:
             count += 1
@@ -205,18 +206,18 @@ class FileTreeNode:
         for child in self.children:
             child.sort_tree_by_number_of_children()
 
-    def sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth(
-        self, depth
-    ):
+    def sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth(self):
         self.children.sort(
-            key=lambda node: (self.count_all_descendants(node, depth_limit=depth), node.file_path.name),
+            key=lambda node: (
+                self.count_all_descendants(node, depth_limit=5),
+                node.file_path.name,
+            ),
             reverse=False,
         )
-        if depth > 0:
+        self._has_been_sorted = True
+        if self._has_been_sorted == False:
             for child in self.children:
-                child.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth(
-                    depth=depth - 1
-                )
+                child.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
 
     def print_improved_tree(self):
         if self.parent == None:
@@ -315,6 +316,6 @@ result = return_linked_files_V4(
     max_link_depth=3,
     current_file=start_file_path,
 )
-result.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth(depth=5)
+result.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
 result.print_improved_tree()
 pass
