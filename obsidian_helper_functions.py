@@ -151,7 +151,15 @@ class FileTreeNode:
         self.children: list["FileTreeNode"] = []
         self.parent: "FileTreeNode" | None = None
         self.unfindable_files: list[str] = []
-        self.id = randint(0, 1000000) # TODO: remove this
+        self.id = randint(0, 1000000)  # TODO: remove this
+
+    @property
+    def is_last_born_child(self):
+        if self.parent == None:
+            return True
+        if self.parent.children[-1] == self:
+            return True
+        return False
 
     def add_child(self, child):
         self.children.append(child)
@@ -217,9 +225,6 @@ class FileTreeNode:
                     for child in self.children:
                         child.print_improved_tree()
                 else:
-                    # current node does not have children
-                    # check all parent to see how many are last born children (should not have "|    " printed if last born child)
-                    ##############################################################################################################
                     print(
                         self.parent.get_depth() * "|    "
                         + "    "
