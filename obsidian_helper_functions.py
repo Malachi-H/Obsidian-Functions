@@ -219,12 +219,17 @@ class FileTreeNode:
             for child in self.children:
                 child.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
 
-    def print_improved_tree(self):
+    def print_improved_tree(
+        self, depth=0, siblings: None | list["FileTreeNode"] = None
+    ):
+        if siblings == None:
+            siblings = []
         if self.parent == None:
             # If the current node is the root node
             print(self.file_path)
             for child in self.children:
-                child.print_improved_tree()
+                child_siblings = self.children
+                child.print_improved_tree(depth + 1, child_siblings)
         else:
             if self.parent.children[-1] == self:
                 branch_char = "└───"
@@ -236,12 +241,19 @@ class FileTreeNode:
                 parent_depth = self.parent.get_depth()
 
                 print(parent_depth * "|    " + "|    ")
-                print(parent_depth * "|    " + branch_char + str(self.file_path.name))
+                print(
+                    parent_depth * "|    "
+                    + branch_char
+                    + str(self.file_path.name)
+                    + str(depth)
+                )
 
                 if self.visited == False:
                     self.visited = True
+
                     for child in self.children:
-                        child.print_improved_tree()
+                        child_siblings = self.children
+                        child.print_improved_tree(depth + 1, child_siblings)
             else:
                 # current node does not have children
                 indent_string = ""
@@ -250,7 +262,7 @@ class FileTreeNode:
                         indent_string += "     "
                     else:
                         indent_string += "│    "
-                print(indent_string + str(self.file_path.name))
+                print(indent_string + str(self.file_path.name) + str(depth))
 
     def __repr__(self) -> str:
         return f"FileTreeNode({self.file_path}) - {self.id}"
