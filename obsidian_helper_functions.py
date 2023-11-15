@@ -275,13 +275,12 @@ class FileTreeNode:
                         if duplicate_node.get_depth() < self.get_depth():
                             print_children = False
 
+                if print_children:
+                    file_name = f"{str(self.file_path.name)}"
+                else:
+                    file_name = f"<< {str(self.file_path.name)} >>"
                 print(parent_depth * "|    " + "|    ")
-                print(
-                    parent_depth * "|    "
-                    + branch_char
-                    + str(self.file_path.name)
-                    + str(depth)
-                )
+                print(parent_depth * "|    " + branch_char + file_name + str(depth))
 
                 if not self.visited and print_children:
                     self.visited = True
