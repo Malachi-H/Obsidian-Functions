@@ -152,7 +152,6 @@ class FileTreeNode:
         self.parent: "FileTreeNode" | None = None
         self.unfindable_files: list[str] = []
         self.id = randint(0, 1000000)  # TODO: remove this
-        self.visited = False
         self._has_been_sorted = False
         self.hierarchical_importance = int
         self.duplicate_nodes = list[FileTreeNode]
@@ -162,6 +161,12 @@ class FileTreeNode:
         if self.parent == None:
             return True
         if self.parent.children[-1] == self:
+            return True
+        return False
+
+    @property
+    def has_children(self):
+        if self.children:
             return True
         return False
 
@@ -233,17 +238,19 @@ class FileTreeNode:
             child.sort_tree_by_number_of_children()
 
     def sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth(self):
-        self.children.sort(
-            key=lambda node: (
-                self.count_all_descendants(node, depth_limit=5),
-                node.file_path.name,
-            ),
-            reverse=False,
-        )
-        self._has_been_sorted = True
         if self._has_been_sorted == False:
+            self._has_been_sorted = True
+            self.children.sort(
+                key=lambda node: (node.has_children, node.file_path.name.lower())
+            )
             for child in self.children:
                 child.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
+
+    def should_draw_tree_branch_line(self):
+        should_draw = True
+        if self.parent:
+            if self.parent.is_last_born_child:
+                should_draw = False
 
     def print_improved_tree(
         self, depth=0, siblings: None | list["FileTreeNode"] = None
@@ -257,16 +264,10 @@ class FileTreeNode:
                 child_siblings = self.children
                 child.print_improved_tree(depth + 1, child_siblings)
         else:
-            if self.parent.children[-1] == self:  # if current node is last born child
-                branch_char = "└───"
-            else:
-                branch_char = "├───"
-
+            file_name = f"{str(self.file_path.name)}"
+            print_children = True
             if self.children:
                 # current node has children
-                parent_depth = self.parent.get_depth()
-
-                print_children = True
                 duplicate_nodes = self.find_all_duplicate_nodes()
                 if str(self.file_path) in duplicate_nodes.keys():
                     # current node has a duplicate
@@ -274,29 +275,22 @@ class FileTreeNode:
                         # print(duplicate_node.get_depth(), self.get_depth())
                         if duplicate_node.get_depth() < self.get_depth():
                             print_children = False
+                            file_name = f"<< {file_name} >>"
 
-                if print_children:
-                    file_name = f"{str(self.file_path.name)}"
+                if self.is_last_born_child:
+                    print_string = self.get_depth() * "    " + "└── " + file_name
                 else:
-                    file_name = f"<< {str(self.file_path.name)} >>"
-                print(parent_depth * "|    " + "|    ")
-                print(parent_depth * "|    " + branch_char + file_name + str(depth))
+                    print_string = self.get_depth() * "    " + "├───" + file_name
 
-                if not self.visited and print_children:
-                    self.visited = True
-
-                    for child in self.children:
-                        child_siblings = self.children
-                        child.print_improved_tree(depth + 1, child_siblings)
             else:
                 # current node does not have children
-                indent_string = ""
-                for parent in self.list_all_parents()[::-1]:
-                    if parent.is_last_born_child:
-                        indent_string += "     "
-                    else:
-                        indent_string += "│    "
-                print(indent_string + str(self.file_path.name) + str(depth))
+                print_string = self.get_depth() * "    " + file_name
+
+            print(print_string)
+            if print_children:
+                for child in self.children:
+                    child_siblings = self.children
+                    child.print_improved_tree(depth + 1, child_siblings)
 
     def __repr__(self) -> str:
         return f"FileTreeNode({self.file_path}) - {self.id}"
