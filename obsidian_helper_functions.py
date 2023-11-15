@@ -153,11 +153,9 @@ class FileTreeNode:
         self.unfindable_files: list[str] = []
         self.id = randint(0, 1000000)  # TODO: remove this
         self.visited = False
-        if self.parent == None:
-            self.christmas_card_list = (
-                []
-            )  # list of all family members. Only stored for the root node. I can have the occasional fun with names.
         self._has_been_sorted = False
+        self.hierarchical_importance = int
+        self.duplicate_nodes = list[FileTreeNode]
 
     @property
     def is_last_born_child(self):
@@ -166,6 +164,34 @@ class FileTreeNode:
         if self.parent.children[-1] == self:
             return True
         return False
+
+    def find_root_node(self):
+        root_node = self
+        while root_node.parent:
+            root_node = root_node.parent
+        return root_node
+
+    def list_all_descendants(self) -> list["FileTreeNode"] | list[None]:
+        descendants = []
+        for child in self.children:
+            descendants.append(child)
+            descendants += child.list_all_descendants()
+        return descendants
+
+    def find_all_duplicate_nodes(self):
+        root_node = self.find_root_node()
+        all_nodes = root_node.list_all_descendants()
+        grouped_nodes: dict[str, list[FileTreeNode]] = {}
+        for note in all_nodes:
+            if note != None:
+                if str(note.file_path) in grouped_nodes.keys():
+                    grouped_nodes[str(note.file_path)].append(note)
+                else:
+                    grouped_nodes[str(note.file_path)] = [note]
+        duplicates = {
+            key: value for (key, value) in grouped_nodes.items() if len(value) > 1
+        }  # remove all non-duplicates
+        return duplicates
 
     def add_child(self, child):
         self.children.append(child)
@@ -231,7 +257,7 @@ class FileTreeNode:
                 child_siblings = self.children
                 child.print_improved_tree(depth + 1, child_siblings)
         else:
-            if self.parent.children[-1] == self:
+            if self.parent.children[-1] == self:  # if current node is last born child
                 branch_char = "└───"
             else:
                 branch_char = "├───"
@@ -239,6 +265,15 @@ class FileTreeNode:
             if self.children:
                 # current node has children
                 parent_depth = self.parent.get_depth()
+
+                print_children = True
+                duplicate_nodes = self.find_all_duplicate_nodes()
+                if str(self.file_path) in duplicate_nodes.keys():
+                    # current node has a duplicate
+                    for duplicate_node in duplicate_nodes[str(self.file_path)]:
+                        # print(duplicate_node.get_depth(), self.get_depth())
+                        if duplicate_node.get_depth() < self.get_depth():
+                            print_children = False
 
                 print(parent_depth * "|    " + "|    ")
                 print(
@@ -248,7 +283,7 @@ class FileTreeNode:
                     + str(depth)
                 )
 
-                if self.visited == False:
+                if not self.visited and print_children:
                     self.visited = True
 
                     for child in self.children:
@@ -284,14 +319,7 @@ def return_linked_files_V4(
             root_node = root_node.parent
 
     if _parent_node:
-        current_node_already_added = False
-        for node in root_node.christmas_card_list:
-            if node.file_path == current_node.file_path:
-                current_node_already_added = True
-                _parent_node.add_child(node)
-        if current_node_already_added == False:
-            root_node.christmas_card_list.append(current_node)
-            _parent_node.add_child(current_node)
+        _parent_node.add_child(current_node)
 
     if max_link_depth != 0:
         with open(current_file, "r", encoding="utf8") as f:
@@ -325,7 +353,7 @@ start_file_path = r"D:\Obsidian\School\Maths\Maths.md"
 vault_folder = r"D:\Obsidian"
 result = return_linked_files_V4(
     vault_folder,
-    max_link_depth=3,
+    max_link_depth=7,
     current_file=start_file_path,
 )
 result.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
