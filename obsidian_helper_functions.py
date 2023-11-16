@@ -10,7 +10,7 @@ import shutil
 from typing import List, Tuple
 import general_helper_functions as help_funcs
 import time
-import cProfile
+import cProfile, pstats, io
 
 
 def has_yaml_tag(tag: str, all_file_lines: List[str]) -> bool:
@@ -157,6 +157,13 @@ class FileTreeNode:
         self._has_been_sorted = False
         self.hierarchical_importance = int
         self.duplicate_nodes = list[FileTreeNode]
+        self._depth = None
+
+    @property
+    def depth(self):
+        if self._depth == None:
+            self._depth = self.get_depth()
+        return self._depth
 
     @property
     def is_last_born_child(self):
@@ -252,8 +259,14 @@ class FileTreeNode:
         return indent
 
     def print_improved_tree(
-        self, depth=0, siblings: None | list["FileTreeNode"] = None
+        self,
+        depth=0,
+        siblings: None | list["FileTreeNode"] = None,
+        duplicate_nodes=None,
     ):
+        if duplicate_nodes == None:
+            duplicate_nodes = self.find_all_duplicate_nodes()
+
         if siblings == None:
             siblings = []
         if self.parent == None:
@@ -261,19 +274,20 @@ class FileTreeNode:
             print(self.file_path)
             for child in self.children:
                 child_siblings = self.children
-                child.print_improved_tree(depth + 1, child_siblings)
+                child.print_improved_tree(
+                    depth + 1, child_siblings, duplicate_nodes=duplicate_nodes
+                )
         else:
             file_name = f"{str(self.file_path.name)}"
             print_children = True
             indents = self.determine_indents()
             if self.children:
                 # current node has children
-                duplicate_nodes = self.find_all_duplicate_nodes()
                 if str(self.file_path) in duplicate_nodes.keys():
                     # current node has a duplicate
                     for duplicate_node in duplicate_nodes[str(self.file_path)]:
                         # print(duplicate_node.get_depth(), self.get_depth())
-                        if duplicate_node.get_depth() < self.get_depth():
+                        if duplicate_node.depth < self.depth:
                             print_children = False
                             file_name = f"<< {file_name} >>"
 
@@ -293,7 +307,9 @@ class FileTreeNode:
             if print_children:
                 for child in self.children:
                     child_siblings = self.children
-                    child.print_improved_tree(depth + 1, child_siblings)
+                    child.print_improved_tree(
+                        depth + 1, child_siblings, duplicate_nodes=duplicate_nodes
+                    )
 
     def __repr__(self) -> str:
         return f"FileTreeNode({self.file_path}) - {self.id}"
@@ -308,12 +324,9 @@ def return_linked_files_V4(
 ):
     if all_files_in_base_directory == dict():
         # search for all files in the base directory and subdirectories
-        # don't care about the file extension so remove it from the keys (makes comparison much easier)
         all_files_in_base_directory = {
-            re.sub(r"\.[^.]*$", "", file.name): file
-            for file in Path(root_directory).rglob("*")
+            file.name: file for file in Path(root_directory).rglob("*")
         }
-
     current_node = FileTreeNode(current_file)
     if _parent_node == None:
         root_node = current_node
@@ -336,7 +349,7 @@ def return_linked_files_V4(
             linked_files,
             un_finable_files,
         ) = help_funcs.convert_file_base_names_to_full_path_V2(
-            linked_file_base_names, all_files_in_base_directory
+            linked_file_base_names, all_files_in_base_directory, root_directory
         )
 
         for file in un_finable_files:
@@ -354,8 +367,8 @@ def return_linked_files_V4(
     return current_node
 
 
-start_file_path = r"D:\Obsidian\School\School Index.md"
-start_file_path = Path(r"D:\Obsidian\School\Maths\Maths.md")
+start_file_path = Path(r"D:\Obsidian\School\School Index.md")
+# start_file_path = Path(r"D:\Obsidian\School\Maths\Maths.md")
 vault_folder = r"D:\Obsidian"
 # result = return_linked_files_V4(
 #     vault_folder,
@@ -363,15 +376,41 @@ vault_folder = r"D:\Obsidian"
 #     current_file=start_file_path,
 # )
 profiler = cProfile.Profile()
-result = profiler.runcall(
-    return_linked_files_V4,
+profiler.enable()
+result = return_linked_files_V4(
     vault_folder,
     max_link_depth=10,
-    current_file=start_file_path,
+    current_file=Path(start_file_path),
 )
+profiler.disable()
+
+s2 = io.StringIO()
+ps = pstats.Stats(profiler, stream=s2).sort_stats("cumtime")
+ps.print_stats()
+for line in s2.getvalue().split("\n"):
+    if "in" in line and "function calls" in line:
+        print(line[61:-8])
+
+
 result.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
-profiler.print_stats(sort="cumtime")
-start_time = time.time()
-result.print_improved_tree()
-duration = time.time() - start_time
-print(f"Tree Printing Duration: {duration}")
+
+
+# profiler2 = cProfile.Profile()
+# profiler2.enable()
+
+# result.print_improved_tree()
+
+# profiler2.disable()
+
+# s2 = io.StringIO()
+# ps2 = pstats.Stats(profiler, stream=s2).sort_stats("cumtime").print_stats()
+# for line in s2.getvalue().split("\n"):
+#     if "in" in line and "function calls" in line:
+#         print(line[61:-8])
+#         print(s2.getvalue())
+
+
+profiler3 = cProfile.Profile()
+profiler3.runcall(result.print_improved_tree)
+stats = pstats.Stats(profiler3)
+stats.sort_stats("cumtime").print_stats()

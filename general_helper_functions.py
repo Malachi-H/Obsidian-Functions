@@ -116,11 +116,27 @@ def convert_file_base_names_to_full_path(
 
 
 def convert_file_base_names_to_full_path_V2(
-    linked_file_base_names: list[str], all_files_in_base_directory: dict[str, Path]
+    linked_file_base_names: list[str],
+    all_files_in_base_directory: dict[str, Path],
+    root_directory,
 ) -> tuple[list[Path], list[str]]:
     linked_files: list[Path] = []
     un_finable_files: list[str] = []
     for linked_file_base_name in linked_file_base_names:
+        if "/" in linked_file_base_name:
+            if linked_file_base_name in [file.relative_to(root_directory) for file in all_files_in_base_directory.values()]:
+                linked_files.append(all_files_in_base_directory[linked_file_base_name])
+            else:
+                print(f"Linked file not found: {linked_file_base_name}\n")
+                if linked_file_base_name[-1] == " ":
+                    print(
+                        "Looks like there is a trailing space at the end of the file name!"
+                    )
+                un_finable_files.append(linked_file_base_name)
+        else:
+            linked_file_base_name = (
+                f"{linked_file_base_name}.md"  # assuming that the file is a markdown file
+            )
         # pprint.pprint(list(all_files_in_base_directory.keys()))
         if linked_file_base_name in all_files_in_base_directory.keys():
             linked_files.append(all_files_in_base_directory[linked_file_base_name])
