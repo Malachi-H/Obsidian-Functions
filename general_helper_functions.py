@@ -1,8 +1,11 @@
 import fnmatch
+import pprint
+import re
 from typing import List
 import glob
 import os
 from pathlib import Path
+
 
 def get_input_directory(DEFAULT_DIRECTORY: str) -> str:
     ValidInput = False
@@ -90,17 +93,6 @@ def find_file_path(directory: str, base_name: str) -> str | None:
             return os.path.join(current_folder, str(filename))
     return None
 
-    
-
-
-# from pathlib import Path
-
-# def find_file_path(directory: str, base_name: str) -> str | None:
-#     base_path = Path(directory) / base_name.replace('/', '\\')
-#     for file_path in base_path.rglob(base_path.name):
-#         return str(file_path)
-#     return None
-
 
 def convert_file_base_names_to_full_path(
     linked_file_base_names: list[str], root_directory: str
@@ -120,4 +112,24 @@ def convert_file_base_names_to_full_path(
                     "Looks like there is a trailing space at the end of the file name!"
                 )
             un_finable_files.append(linked_file_base_name)
+    return linked_files, un_finable_files
+
+
+def convert_file_base_names_to_full_path_V2(
+    linked_file_base_names: list[str], all_files_in_base_directory: dict[str, Path]
+) -> tuple[list[Path], list[str]]:
+    linked_files: list[Path] = []
+    un_finable_files: list[str] = []
+    for linked_file_base_name in linked_file_base_names:
+        # pprint.pprint(list(all_files_in_base_directory.keys()))
+        if linked_file_base_name in all_files_in_base_directory.keys():
+            linked_files.append(all_files_in_base_directory[linked_file_base_name])
+        else:
+            print(f"Linked file not found: {linked_file_base_name}\n")
+            if linked_file_base_name[-1] == " ":
+                print(
+                    "Looks like there is a trailing space at the end of the file name!"
+                )
+            un_finable_files.append(linked_file_base_name)
+
     return linked_files, un_finable_files

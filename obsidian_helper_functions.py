@@ -302,9 +302,20 @@ class FileTreeNode:
 def return_linked_files_V4(
     root_directory: str,
     max_link_depth: int,
-    current_file: str,
+    current_file: Path,
     _parent_node: FileTreeNode | None = None,
+    all_files_in_base_directory: dict[str, Path] = dict(),
 ):
+    if all_files_in_base_directory == dict():
+        all_files_in_base_directory = {
+            file.name: file for file in Path(root_directory).rglob("*")
+        }
+        # don't care about the file extension so remove it from the keys (makes checking much easier)
+        all_files_in_base_directory = {
+            re.sub(r"\.[^.]*$", "", key): value
+            for (key, value) in all_files_in_base_directory.items()
+        }
+
     current_node = FileTreeNode(current_file)
     if _parent_node == None:
         root_node = current_node
@@ -326,8 +337,8 @@ def return_linked_files_V4(
         (
             linked_files,
             un_finable_files,
-        ) = help_funcs.convert_file_base_names_to_full_path(
-            linked_file_base_names, root_directory
+        ) = help_funcs.convert_file_base_names_to_full_path_V2(
+            linked_file_base_names, all_files_in_base_directory
         )
 
         for file in un_finable_files:
@@ -340,12 +351,13 @@ def return_linked_files_V4(
                     max_link_depth - 1,
                     current_file=linked_file,
                     _parent_node=current_node,
+                    all_files_in_base_directory=all_files_in_base_directory,
                 )
     return current_node
 
 
 start_file_path = r"D:\Obsidian\School\School Index.md"
-start_file_path = r"D:\Obsidian\School\Maths\Maths.md"
+start_file_path = Path(r"D:\Obsidian\School\Maths\Maths.md")
 vault_folder = r"D:\Obsidian"
 # result = return_linked_files_V4(
 #     vault_folder,
