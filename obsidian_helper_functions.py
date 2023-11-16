@@ -10,6 +10,7 @@ import shutil
 from typing import List, Tuple
 import general_helper_functions as help_funcs
 import time
+import cProfile
 
 
 def has_yaml_tag(tag: str, all_file_lines: List[str]) -> bool:
@@ -231,14 +232,6 @@ class FileTreeNode:
                 count += self.count_all_descendants(child, depth_limit=depth_limit - 1)
         return count
 
-    def sort_tree_by_number_of_children(self):
-        # current node is not root
-        self.children.sort(
-            key=lambda node: self.count_all_descendants(node), reverse=False
-        )
-        for child in self.children:
-            child.sort_tree_by_number_of_children()
-
     def sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth(self):
         if self._has_been_sorted == False:
             self._has_been_sorted = True
@@ -247,13 +240,6 @@ class FileTreeNode:
             )
             for child in self.children:
                 child.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
-
-    def should_draw_tree_branch_line(self):  #! Remove?
-        should_draw = True
-        if self.parent:
-            if self.parent.is_last_born_child:
-                should_draw = False
-        return should_draw
 
     def determine_indents(self) -> str:
         parents = self.list_all_parents()[::-1]
@@ -358,18 +344,23 @@ def return_linked_files_V4(
     return current_node
 
 
-start_time = time.time()
 start_file_path = r"D:\Obsidian\School\School Index.md"
 start_file_path = r"D:\Obsidian\School\Maths\Maths.md"
 vault_folder = r"D:\Obsidian"
-result = return_linked_files_V4(
+# result = return_linked_files_V4(
+#     vault_folder,
+#     max_link_depth=10,
+#     current_file=start_file_path,
+# )
+profiler = cProfile.Profile()
+result = profiler.runcall(
+    return_linked_files_V4,
     vault_folder,
     max_link_depth=10,
     current_file=start_file_path,
 )
-duration = time.time() - start_time
-print(f"Tree Compilation Duration: {duration}")
 result.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
+profiler.print_stats(sort="cumtime")
 start_time = time.time()
 result.print_improved_tree()
 duration = time.time() - start_time
