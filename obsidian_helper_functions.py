@@ -9,6 +9,7 @@ import re
 import shutil
 from typing import List, Tuple
 import general_helper_functions as help_funcs
+import time
 
 
 def has_yaml_tag(tag: str, all_file_lines: List[str]) -> bool:
@@ -214,6 +215,7 @@ class FileTreeNode:
         return level
 
     def list_all_parents(self) -> list["FileTreeNode"]:
+        "returns a list of all the parent nodes in order from the current node to the root node"
         parents = []
         p = self.parent
         while p:
@@ -246,11 +248,22 @@ class FileTreeNode:
             for child in self.children:
                 child.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
 
-    def should_draw_tree_branch_line(self):
+    def should_draw_tree_branch_line(self):  #! Remove?
         should_draw = True
         if self.parent:
             if self.parent.is_last_born_child:
                 should_draw = False
+        return should_draw
+
+    def determine_indents(self) -> str:
+        parents = self.list_all_parents()[::-1]
+        indent = ""
+        for parent in parents:
+            if parent.is_last_born_child:
+                indent += "    "
+            else:
+                indent += "│   "
+        return indent
 
     def print_improved_tree(
         self, depth=0, siblings: None | list["FileTreeNode"] = None
@@ -266,6 +279,7 @@ class FileTreeNode:
         else:
             file_name = f"{str(self.file_path.name)}"
             print_children = True
+            indents = self.determine_indents()
             if self.children:
                 # current node has children
                 duplicate_nodes = self.find_all_duplicate_nodes()
@@ -278,13 +292,16 @@ class FileTreeNode:
                             file_name = f"<< {file_name} >>"
 
                 if self.is_last_born_child:
-                    print_string = self.get_depth() * "    " + "└── " + file_name
+                    fork = "└── "
                 else:
-                    print_string = self.get_depth() * "    " + "├───" + file_name
+                    fork = "├───"
+                blank_space = f"{indents}│"
+                print_string = indents + fork + file_name
+                print_string = f"{blank_space}\n{print_string}"
 
             else:
                 # current node does not have children
-                print_string = self.get_depth() * "    " + file_name
+                print_string = indents + file_name
 
             print(print_string)
             if print_children:
@@ -341,14 +358,19 @@ def return_linked_files_V4(
     return current_node
 
 
+start_time = time.time()
 start_file_path = r"D:\Obsidian\School\School Index.md"
 start_file_path = r"D:\Obsidian\School\Maths\Maths.md"
 vault_folder = r"D:\Obsidian"
 result = return_linked_files_V4(
     vault_folder,
-    max_link_depth=7,
+    max_link_depth=10,
     current_file=start_file_path,
 )
+duration = time.time() - start_time
+print(f"Tree Compilation Duration: {duration}")
 result.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
+start_time = time.time()
 result.print_improved_tree()
-pass
+duration = time.time() - start_time
+print(f"Tree Printing Duration: {duration}")
