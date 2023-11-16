@@ -307,13 +307,11 @@ def return_linked_files_V4(
     all_files_in_base_directory: dict[str, Path] = dict(),
 ):
     if all_files_in_base_directory == dict():
+        # search for all files in the base directory and subdirectories
+        # don't care about the file extension so remove it from the keys (makes comparison much easier)
         all_files_in_base_directory = {
-            file.name: file for file in Path(root_directory).rglob("*")
-        }
-        # don't care about the file extension so remove it from the keys (makes checking much easier)
-        all_files_in_base_directory = {
-            re.sub(r"\.[^.]*$", "", key): value
-            for (key, value) in all_files_in_base_directory.items()
+            re.sub(r"\.[^.]*$", "", file.name): file
+            for file in Path(root_directory).rglob("*")
         }
 
     current_node = FileTreeNode(current_file)
