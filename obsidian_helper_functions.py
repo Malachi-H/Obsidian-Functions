@@ -212,8 +212,9 @@ class FileTreeNode:
         return grouped_nodes
 
     def add_child(self, child):
-        self.children.append(child)
-        child.parent = self
+        if child not in self.children:
+            self.children.append(child)
+            child.parent = self
 
     def add_unfindable_file(self, file_base_name):
         self.unfindable_files.append(file_base_name)
@@ -256,11 +257,13 @@ class FileTreeNode:
         parents = self.list_all_parents()[::-1]
         indent = ""
         for parent in parents:
-            if parent.is_last_born_child:
+            if parent.parent == None:
+                indent += ""
+            elif parent.is_last_born_child:
                 indent += "    "
             else:
                 indent += "│   "
-        return indent
+        return f"{indent}"
 
     def print_improved_tree(
         self,
@@ -282,10 +285,8 @@ class FileTreeNode:
                     depth + 1, siblings=child_siblings, duplicate_nodes=duplicate_nodes
                 )
         else:
-            # osCommandString = f"notepad.exe {self.file_path}"
-            # command = os.system(osCommandString)
             file_name = help_funcs.link(
-                f"{self.file_path}", f"{str(self.file_path.name)}"
+                f"{self.file_path}", f"{str(self.file_path.name[:-3])}"
             )
             print_children = True
             indents = self.determine_indents()
@@ -309,7 +310,11 @@ class FileTreeNode:
 
             else:
                 # current node does not have children
-                print_string = indents + file_name
+                if self.parent.parent == None:
+                    # special formatting for zeroth level children without descendants
+                    print_string = "|   " + file_name
+                else:
+                    print_string = indents + file_name
 
             print(print_string)
             if print_children:
@@ -329,7 +334,22 @@ def return_linked_files_V4(
     current_file: Path,
     _parent_node: FileTreeNode | None = None,
     all_files_in_base_directory: dict[str, Path] | None = None,
+    previously_visited_files: dict[Path, int] | None = None,
+    previously_created_nodes: list[FileTreeNode] | None = None,
 ):
+    if previously_created_nodes == None:
+        previously_created_nodes = []
+
+    if previously_visited_files == None:
+        previously_visited_files = {}
+    elif current_file not in previously_visited_files.keys():
+        previously_visited_files[current_file] = 1
+    else:
+        previously_visited_files[current_file] += 1
+        if previously_visited_files[current_file] > 2:
+            previously_visited_files[current_file] = 1
+            return
+
     if all_files_in_base_directory is None:
         # search for all files in the base directory and subdirectories
         all_files_in_base_directory = {
@@ -337,7 +357,16 @@ def return_linked_files_V4(
             for root, dirs, files in os.walk(root_directory)
             for file in files
         }
-    current_node = FileTreeNode(current_file)
+
+    duplicate_node = False
+    """for node in previously_created_nodes:
+        if current_file == node.file_path:
+            duplicate_node = node"""
+    if duplicate_node == False:
+        current_node = FileTreeNode(current_file)
+        previously_created_nodes.append(current_node)
+    else:
+        current_node = duplicate_node
     root_node = current_node if _parent_node is None else _parent_node
     if _parent_node:
         _parent_node.add_child(current_node)
@@ -363,6 +392,8 @@ def return_linked_files_V4(
                 current_file=linked_file,
                 _parent_node=current_node,
                 all_files_in_base_directory=all_files_in_base_directory,
+                previously_visited_files=previously_visited_files,
+                previously_created_nodes=previously_created_nodes,
             )
     return current_node
 
@@ -371,8 +402,9 @@ start_file_path = Path(r"D:\Obsidian\School\School Index.md")
 vault_folder = r"D:\Obsidian"
 result = return_linked_files_V4(
     vault_folder,
-    max_link_depth=4,
+    max_link_depth=100,
     current_file=Path(start_file_path),
 )
+
 result.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
 result.print_improved_tree()
