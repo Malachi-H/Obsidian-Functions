@@ -347,6 +347,7 @@ def return_linked_files_V4(
         linked_file_base_names = return_linked_base_names(
             all_file_lines, must_have_no_extension=True
         )
+        linked_file_base_names = list(set(linked_file_base_names))  # remove duplicates
         (
             linked_files,
             un_finable_files,
