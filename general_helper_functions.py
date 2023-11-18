@@ -1,10 +1,20 @@
 import fnmatch
-import pprint
+from pprint import pprint
 import re
 from typing import List
 import glob
 import os
 from pathlib import Path
+
+def link(uri, label=None):
+    if label is None: 
+        label = uri
+    parameters = ''
+
+    # OSC 8 ; params ; URI ST <name> OSC 8 ;; ST 
+    escape_mask = '\033]8;{};{}\033\\{}\033]8;;\033\\'
+
+    return escape_mask.format(parameters, uri, label)
 
 
 def get_input_directory(DEFAULT_DIRECTORY: str) -> str:
@@ -120,12 +130,27 @@ def convert_file_base_names_to_full_path_V2(
     all_files_in_base_directory: dict[str, Path],
     root_directory,
 ) -> tuple[list[Path], list[str]]:
+    """This function needs refactoring but im too lazy to do so now.
+    Here's what is does:
+    1. Checks if the input file base name is a file path relative to the vault root (this is caused by duplicate file names)
+    2. If it is, it checks to see if the file exists in the vault root by searching with the more specific path instead of just the base name
+
+    3. If the input file base name is not a file path relative to the vault root, it checks to see if the file exists in the vault root by searching with just the base name
+    4. if it can't find it, it lowers its own value and all of the dictionary keys and searches again (time consuming)
+    5. if it still can't find it, it prints a message to the terminal (would be better to raise an error with a logging module)
+    """
     linked_files: list[Path] = []
     un_finable_files: list[str] = []
     for linked_file_base_name in linked_file_base_names:
         if "/" in linked_file_base_name:
-            if linked_file_base_name in [file.relative_to(root_directory) for file in all_files_in_base_directory.values()]:
-                linked_files.append(all_files_in_base_directory[linked_file_base_name])
+            all_file_paths_in_root_directory = [
+                file for file in all_files_in_base_directory.values()
+            ]
+            path_of_linked_file = Path(root_directory) / Path(
+                f"{linked_file_base_name}.md"
+            )
+            if path_of_linked_file in all_file_paths_in_root_directory:
+                linked_files.append(path_of_linked_file)
             else:
                 print(f"Linked file not found: {linked_file_base_name}\n")
                 if linked_file_base_name[-1] == " ":
@@ -134,18 +159,29 @@ def convert_file_base_names_to_full_path_V2(
                     )
                 un_finable_files.append(linked_file_base_name)
         else:
-            linked_file_base_name = (
-                f"{linked_file_base_name}.md"  # assuming that the file is a markdown file
-            )
-        # pprint.pprint(list(all_files_in_base_directory.keys()))
-        if linked_file_base_name in all_files_in_base_directory.keys():
-            linked_files.append(all_files_in_base_directory[linked_file_base_name])
-        else:
-            print(f"Linked file not found: {linked_file_base_name}\n")
-            if linked_file_base_name[-1] == " ":
-                print(
-                    "Looks like there is a trailing space at the end of the file name!"
-                )
-            un_finable_files.append(linked_file_base_name)
+            linked_file_base_name = f"{linked_file_base_name}.md"  # assuming that the file is a markdown file
+            if linked_file_base_name in all_files_in_base_directory.keys():
+                linked_files.append(all_files_in_base_directory[linked_file_base_name])
+            else:
+                lowered_all_files_in_base_directory = {
+                    key.lower(): value
+                    for key, value in all_files_in_base_directory.items()
+                }
+                if (
+                    linked_file_base_name.lower()
+                    in lowered_all_files_in_base_directory.keys()
+                ):
+                    linked_files.append(
+                        lowered_all_files_in_base_directory[
+                            linked_file_base_name.lower()
+                        ]
+                    )
+                else:
+                    print(f"Linked file not found: {linked_file_base_name}\n")
+                    if linked_file_base_name[-1] == " ":
+                        print(
+                            "Looks like there is a trailing space at the end of the file name!"
+                        )
+                    un_finable_files.append(linked_file_base_name)
 
     return linked_files, un_finable_files

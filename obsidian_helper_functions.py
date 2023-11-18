@@ -195,17 +195,21 @@ class FileTreeNode:
     def find_all_duplicate_nodes(self):
         root_node = self.find_root_node()
         all_nodes = root_node.list_all_descendants()
-        grouped_nodes: dict[str, list[FileTreeNode]] = {}
-        for note in all_nodes:
-            if note != None:
-                if str(note.file_path) in grouped_nodes.keys():
-                    grouped_nodes[str(note.file_path)].append(note)
-                else:
-                    grouped_nodes[str(note.file_path)] = [note]
-        duplicates = {
-            key: value for (key, value) in grouped_nodes.items() if len(value) > 1
-        }  # remove all non-duplicates
-        return duplicates
+        grouped_nodes = {}
+        # Use try/except to append to list or create new list if key doesn't exist
+        for node in all_nodes:
+            if node is not None:
+                try:
+                    grouped_nodes[str(node.file_path)].append(node)
+                except KeyError:
+                    grouped_nodes[str(node.file_path)] = [node]
+        # Filter original dictionary in-place to keep only duplicates
+        for key in list(
+            grouped_nodes.keys()
+        ):  # Create a copy of keys to avoid RuntimeError
+            if len(grouped_nodes[key]) <= 1:
+                del grouped_nodes[key]
+        return grouped_nodes
 
     def add_child(self, child):
         self.children.append(child)
@@ -275,10 +279,14 @@ class FileTreeNode:
             for child in self.children:
                 child_siblings = self.children
                 child.print_improved_tree(
-                    depth + 1, child_siblings, duplicate_nodes=duplicate_nodes
+                    depth + 1, siblings=child_siblings, duplicate_nodes=duplicate_nodes
                 )
         else:
-            file_name = f"{str(self.file_path.name)}"
+            # osCommandString = f"notepad.exe {self.file_path}"
+            # command = os.system(osCommandString)
+            file_name = help_funcs.link(
+                f"{self.file_path}", f"{str(self.file_path.name)}"
+            )
             print_children = True
             indents = self.determine_indents()
             if self.children:
@@ -320,25 +328,19 @@ def return_linked_files_V4(
     max_link_depth: int,
     current_file: Path,
     _parent_node: FileTreeNode | None = None,
-    all_files_in_base_directory: dict[str, Path] = dict(),
+    all_files_in_base_directory: dict[str, Path] | None = None,
 ):
-    if all_files_in_base_directory == dict():
+    if all_files_in_base_directory is None:
         # search for all files in the base directory and subdirectories
         all_files_in_base_directory = {
-            file.name: file for file in Path(root_directory).rglob("*")
+            Path(file).name: Path(root) / file
+            for root, dirs, files in os.walk(root_directory)
+            for file in files
         }
     current_node = FileTreeNode(current_file)
-    if _parent_node == None:
-        root_node = current_node
-    else:
-        # find root node
-        root_node = _parent_node
-        while root_node.parent:
-            root_node = root_node.parent
-
+    root_node = current_node if _parent_node is None else _parent_node
     if _parent_node:
         _parent_node.add_child(current_node)
-
     if max_link_depth != 0:
         with open(current_file, "r", encoding="utf8") as f:
             all_file_lines = f.readlines()
@@ -351,66 +353,25 @@ def return_linked_files_V4(
         ) = help_funcs.convert_file_base_names_to_full_path_V2(
             linked_file_base_names, all_files_in_base_directory, root_directory
         )
-
         for file in un_finable_files:
             current_node.add_unfindable_file(file)
-
         for linked_file in linked_files:
-            if True:
-                return_linked_files_V4(
-                    root_directory,
-                    max_link_depth - 1,
-                    current_file=linked_file,
-                    _parent_node=current_node,
-                    all_files_in_base_directory=all_files_in_base_directory,
-                )
+            return_linked_files_V4(
+                root_directory,
+                max_link_depth - 1,
+                current_file=linked_file,
+                _parent_node=current_node,
+                all_files_in_base_directory=all_files_in_base_directory,
+            )
     return current_node
 
 
 start_file_path = Path(r"D:\Obsidian\School\School Index.md")
-# start_file_path = Path(r"D:\Obsidian\School\Maths\Maths.md")
 vault_folder = r"D:\Obsidian"
-# result = return_linked_files_V4(
-#     vault_folder,
-#     max_link_depth=10,
-#     current_file=start_file_path,
-# )
-profiler = cProfile.Profile()
-profiler.enable()
 result = return_linked_files_V4(
     vault_folder,
-    max_link_depth=10,
+    max_link_depth=4,
     current_file=Path(start_file_path),
 )
-profiler.disable()
-
-s2 = io.StringIO()
-ps = pstats.Stats(profiler, stream=s2).sort_stats("cumtime")
-ps.print_stats()
-for line in s2.getvalue().split("\n"):
-    if "in" in line and "function calls" in line:
-        print(line[61:-8])
-
-
 result.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
-
-
-# profiler2 = cProfile.Profile()
-# profiler2.enable()
-
-# result.print_improved_tree()
-
-# profiler2.disable()
-
-# s2 = io.StringIO()
-# ps2 = pstats.Stats(profiler, stream=s2).sort_stats("cumtime").print_stats()
-# for line in s2.getvalue().split("\n"):
-#     if "in" in line and "function calls" in line:
-#         print(line[61:-8])
-#         print(s2.getvalue())
-
-
-profiler3 = cProfile.Profile()
-profiler3.runcall(result.print_improved_tree)
-stats = pstats.Stats(profiler3)
-stats.sort_stats("cumtime").print_stats()
+result.print_improved_tree()
