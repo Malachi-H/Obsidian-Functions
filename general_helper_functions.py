@@ -5,7 +5,6 @@ from typing import List
 import glob
 import os
 from pathlib import Path
-from scalene import scalene_profiler
 from time import time
 
 
@@ -88,6 +87,31 @@ def return_all_full_file_paths(INPUT_DIRECTORY):
         if entry.is_file() and entry.name.endswith(".md")
     ]
     return all_file_paths_from_input
+
+
+def return_all_paths_in_directory_as_dictionary(
+    INPUT_DIRECTORY, file_type: str | None = None
+) -> dict[str, Path]:
+    """Returns a dictionary of all the files in the input directory.
+    key = file name
+    value = full path to file
+
+    If file_type is specified, only files of that type will be returned.
+    file_type should be a string with the period included (e.g. ".md")
+    """
+    all_files_in_base_directory = {
+        Path(file).name: Path(root) / file
+        for root, dirs, files in os.walk(INPUT_DIRECTORY)
+        for file in files
+    }
+    # Optionally filter by file type
+    if file_type != None:
+        all_files_in_base_directory = {
+            name: path
+            for (name, path) in all_files_in_base_directory.items()
+            if path.suffix == f"{file_type}"
+        }
+    return all_files_in_base_directory
 
 
 def find_file_path(directory: str, base_name: str) -> str | None:

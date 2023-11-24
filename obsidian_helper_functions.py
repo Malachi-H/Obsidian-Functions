@@ -10,7 +10,7 @@ import shutil
 from typing import List, Tuple
 import general_helper_functions as help_funcs
 import time
-import cProfile, pstats, io
+import default_values
 
 
 def has_yaml_tag(tag: str, all_file_lines: List[str]) -> bool:
@@ -39,6 +39,38 @@ def has_yaml_tag(tag: str, all_file_lines: List[str]) -> bool:
     if has_tag:
         return True
     return False
+
+
+def return_yaml_property(
+    yaml_property: str, all_file_lines: List[str]
+) -> tuple[str | None, int | None, bool]:
+    """Returns the yaml property and line number if the file has the appropriate frontmatter. False otherwise.
+    property: The property to search for in the yaml section of the file.
+    all_file_lines: All the lines of the file.
+    """
+    yaml_line = "---\n"
+    property_line = "tags:\n"
+
+    yaml_section_exists = False
+    in_yaml_section = False
+    found_property_list: list[str] = []
+    line_number_list: list[int] = []
+    for index, line in enumerate(all_file_lines):
+        if line == yaml_line:
+            in_yaml_section = True
+            yaml_section_exists = True
+        if in_yaml_section:
+            current_line_property = line.split(":")[0]
+            if current_line_property == yaml_property:
+                split_line = line.split(":")
+                found_property_list.append("".join(split_line[1:]))
+                line_number_list.append(index)
+
+    if len(found_property_list) > 1:
+        print("Warning: Multiple properties found. Using first property found.")
+    found_property = found_property_list[0] if found_property_list else None
+    line_number = line_number_list[0] if line_number_list else None
+    return found_property, line_number, yaml_section_exists
 
 
 def line_contains_comment(line: str) -> bool:
@@ -352,11 +384,9 @@ def return_linked_files_V4(
 
     if all_files_in_base_directory is None:
         # search for all files in the base directory and subdirectories
-        all_files_in_base_directory = {
-            Path(file).name: Path(root) / file
-            for root, dirs, files in os.walk(root_directory)
-            for file in files
-        }
+        all_files_in_base_directory = (
+            help_funcs.return_all_paths_in_directory_as_dictionary(root_directory)
+        )
 
     duplicate_node = False
     """for node in previously_created_nodes:
@@ -398,13 +428,14 @@ def return_linked_files_V4(
     return current_node
 
 
-start_file_path = Path(r"D:\Obsidian\School\School Index.md")
-vault_folder = r"D:\Obsidian"
-result = return_linked_files_V4(
-    vault_folder,
-    max_link_depth=3125,
-    current_file=Path(start_file_path),
-)
+if __name__ == "__main__":
+    start_file_path = Path(default_values.Default_File)
+    vault_folder = default_values.Default_Input_Directory
+    result = return_linked_files_V4(
+        vault_folder,
+        max_link_depth=3125,
+        current_file=Path(start_file_path),
+    )
 
-result.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
-result.print_improved_tree()
+    result.sort_tree_by_alphabetical_order_and_number_of_children_to_set_depth()
+    result.print_improved_tree()
