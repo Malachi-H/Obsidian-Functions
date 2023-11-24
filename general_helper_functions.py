@@ -5,14 +5,17 @@ from typing import List
 import glob
 import os
 from pathlib import Path
+from scalene import scalene_profiler
+from time import time
 
-def link(uri, label=None):
-    if label is None: 
+
+def terminal_link(uri, label=None):
+    if label is None:
         label = uri
-    parameters = ''
+    parameters = ""
 
-    # OSC 8 ; params ; URI ST <name> OSC 8 ;; ST 
-    escape_mask = '\033]8;{};{}\033\\{}\033]8;;\033\\'
+    # OSC 8 ; params ; URI ST <name> OSC 8 ;; ST
+    escape_mask = "\033]8;{};{}\033\\{}\033]8;;\033\\"
 
     return escape_mask.format(parameters, uri, label)
 
@@ -79,13 +82,12 @@ def get_start_file(DEFAULT_START_FILE: str) -> str:
 
 def return_all_full_file_paths(INPUT_DIRECTORY):
     """Returns all the full file paths (absolute paths instead of relative) of all the files in the input directory."""
-    all_file_paths_from_input = glob.glob(
-        os.path.join(INPUT_DIRECTORY, "**/*.md"), recursive=True
-    )  # get all .md files in the input directory
-    all_files_full_paths = []
-    for file_path in all_file_paths_from_input:
-        all_files_full_paths.append(os.path.join(INPUT_DIRECTORY, file_path))
-    return all_files_full_paths
+    all_file_paths_from_input = [
+        entry.path
+        for entry in os.scandir(INPUT_DIRECTORY)
+        if entry.is_file() and entry.name.endswith(".md")
+    ]
+    return all_file_paths_from_input
 
 
 def find_file_path(directory: str, base_name: str) -> str | None:

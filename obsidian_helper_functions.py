@@ -285,7 +285,7 @@ class FileTreeNode:
                     depth + 1, siblings=child_siblings, duplicate_nodes=duplicate_nodes
                 )
         else:
-            file_name = help_funcs.link(
+            file_name = help_funcs.terminal_link(
                 f"{self.file_path}", f"{str(self.file_path.name[:-3])}"
             )
             print_children = True
@@ -312,7 +312,7 @@ class FileTreeNode:
                 # current node does not have children
                 if self.parent.parent == None:
                     # special formatting for zeroth level children without descendants
-                    print_string = "|   " + file_name
+                    print_string = "│   " + file_name
                 else:
                     print_string = indents + file_name
 
@@ -348,7 +348,7 @@ def return_linked_files_V4(
         previously_visited_files[current_file] += 1
         if previously_visited_files[current_file] > 2:
             previously_visited_files[current_file] = 1
-            return
+            return FileTreeNode(current_file)
 
     if all_files_in_base_directory is None:
         # search for all files in the base directory and subdirectories
@@ -402,7 +402,7 @@ start_file_path = Path(r"D:\Obsidian\School\School Index.md")
 vault_folder = r"D:\Obsidian"
 result = return_linked_files_V4(
     vault_folder,
-    max_link_depth=100,
+    max_link_depth=3125,
     current_file=Path(start_file_path),
 )
 
