@@ -19,26 +19,27 @@ def has_yaml_tag(tag: str, all_file_lines: List[str]) -> bool:
     all_file_lines: All the lines of the file.
     """
     yaml_line = "---\n"
-    tags_line = "tags:\n"
 
     in_yaml_section = False
     in_tags_section = False
     has_tag = False
-    for line in all_file_lines:
+    for index, line in enumerate(all_file_lines):
         if line == yaml_line:
             in_yaml_section = True
-        if line == tags_line and in_yaml_section:
-            in_tags_section = True
-        if (
-            re.search(rf"\s*{re.escape(tag)}", line) != None
-            and in_tags_section
-            and in_yaml_section
-        ):
-            has_tag = True
+        if in_yaml_section:
+            yaml_property = line.split(":")
+            if yaml_property[0] == "tags":
+                yaml_tags = yaml_property[1]
+                yaml_tags = yaml_tags.replace("[", "")
+                yaml_tags = yaml_tags.replace("]", "")
+                yaml_tags = yaml_tags.replace("\n", "")
+                yaml_tags = yaml_tags.split(",")
+                yaml_tags = [x.strip() for x in yaml_tags]
 
-    if has_tag:
-        return True
-    return False
+                if tag in yaml_tags:
+                    has_tag = True
+                    return has_tag
+    return has_tag
 
 
 def return_yaml_property(
