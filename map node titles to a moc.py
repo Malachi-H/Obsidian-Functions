@@ -18,7 +18,7 @@ def map_Copilot_tag_to_ai_note(input_directory: str, tag_for_search: str):
 
     file_map = [
         "---",
-        "tags: [Chat GPT Queries]",
+        "tags: [Copilot]",
         "---",
         "",
         "All Past Chat GPT Queries",

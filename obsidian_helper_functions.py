@@ -13,6 +13,77 @@ import time
 import default_values
 
 
+def check_for_singleline_flashcard_style_section_in_note(
+    all_file_lines: List[str],
+) -> list[int]:
+    """Returns the line numbers of the flashcard style sections if they exists. None otherwise.
+    all_file_lines: All the lines of the file.
+    """
+
+    question_lines: list[int] = []
+    for current_line_number, line in enumerate(all_file_lines):
+        if ";;" in line or ":::" in line:  # reversible or non-reversible
+            question_lines.append(current_line_number + 1)
+    return question_lines
+
+
+def check_for_multiline_flashcard_style_section_in_note(
+    all_file_lines: List[str],
+) -> list[int]:
+    """Returns the line numbers of the flashcard style sections if they exists. None otherwise.
+    all_file_lines: All the lines of the file.
+    """
+
+    # group the lines before and after the current one into a list of lists
+    # eg. [1,2,3,4] => [[None, 1, 2], [1,2,3], [2,3,4], [3,4,None]]
+    l1 = all_file_lines.copy()
+    l1.insert(0, None)  # type: ignore
+    l1.insert(1, None)  # type: ignore
+    l2 = all_file_lines.copy()
+    l2.insert(0, None)  # type: ignore
+    l2.insert(len(l2), None)  # type: ignore
+    l3 = all_file_lines.copy()
+    l3.insert(len(l3), None)  # type: ignore
+    l3.insert(len(l3), None)  # type: ignore
+    list_of_lists = list(zip(l1, l2, l3))
+
+    question_lines: list[int] = []
+    for current_line_number, line_group in enumerate(list_of_lists):
+        previous_line = line_group[0]
+        current_line = line_group[1]
+        next_line = line_group[2]
+
+        if previous_line == "\n":
+            continue
+        elif current_line == None:
+            continue
+        elif current_line[0] != "?":  # reversible or non-reversible
+            continue
+        elif next_line == "\n":
+            continue
+        elif next_line == None:
+            continue
+        elif current_line_number < 2:
+            continue
+        else:
+            # Fits the format of a multiline flashcard style section
+            question_lines.append(current_line_number)
+
+    return question_lines
+
+
+def yaml_tags_to_list(yaml_property: str) -> list[str]:
+    """Converts a yaml property to a list of strings.
+    yaml_property: The yaml property to convert to a list of strings.
+    """
+    yaml_property = yaml_property.replace("[", "")
+    yaml_property = yaml_property.replace("]", "")
+    yaml_property = yaml_property.replace("\n", "")
+    yaml_property_list = yaml_property.split(",")
+    yaml_property_list = [x.strip() for x in yaml_property_list]
+    return yaml_property_list
+
+
 def has_yaml_tag(tag: str, all_file_lines: List[str]) -> bool:
     """Returns True if the file has the appropriate yaml tag. False otherwise.
     tag: The tag to search for in the yaml section of the file.
@@ -42,10 +113,51 @@ def has_yaml_tag(tag: str, all_file_lines: List[str]) -> bool:
     return has_tag
 
 
+def remove_yaml_tag(tag: str, all_file_lines: List[str], filename: str) -> List[str]:
+    """Removes the tag from the file.
+    tag: The tag to remove from the yaml tag section.
+    all_file_lines: All the lines of the file.
+
+    returns all file lines with the tag removed.
+    """
+    yaml_line = "---\n"
+
+    in_yaml_section = False
+    for index, line in enumerate(all_file_lines):
+        if not in_yaml_section:
+            if line != yaml_line:
+                continue
+            else:
+                in_yaml_section = True
+        yaml_property = line.split(":")
+        if yaml_property[0] != "tags":
+            continue
+        yaml_tags = yaml_property[1]
+        yaml_tags = yaml_tags.replace("[", "")
+        yaml_tags = yaml_tags.replace("]", "")
+        yaml_tags = yaml_tags.replace("\n", "")
+        yaml_tags = yaml_tags.split(",")
+        yaml_tags = [x.strip() for x in yaml_tags]
+
+        if tag not in yaml_tags:
+            raise ValueError(f"Tag '{tag}' not found in {filename}.")
+        yaml_tags.remove(tag)
+        yaml_tags = ", ".join(yaml_tags)
+        yaml_tags = f"[{yaml_tags}]"
+        yaml_tag_property = f"tags: {yaml_tags}\n"
+        all_file_lines[index] = yaml_tag_property
+        return all_file_lines
+    return all_file_lines
+
+
 def return_yaml_property(
     yaml_property: str, all_file_lines: List[str]
 ) -> tuple[str | None, int | None, bool]:
-    """Returns the yaml property and line number if the file has the appropriate frontmatter. False otherwise.
+    """
+    Returns:
+    (found_property, line_number, yaml_section_exists)
+
+    Returns the yaml property and line number if the file has the appropriate frontmatter. False otherwise.
     property: The property to search for in the yaml section of the file.
     all_file_lines: All the lines of the file.
     """

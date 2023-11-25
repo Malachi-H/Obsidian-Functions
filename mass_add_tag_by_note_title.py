@@ -40,12 +40,7 @@ def _extend_tag_list(yaml_property):
     if yaml_property == None:
         yaml_property = ["Copilot"]
     else:
-        yaml_property = yaml_property.replace("[", "")
-        yaml_property = yaml_property.replace("]", "")
-        yaml_property = yaml_property.replace("\n", "")
-        yaml_property = yaml_property.split(",")
-        yaml_property = [x.strip() for x in yaml_property]
-
+        yaml_property = obs_funcs.yaml_tags_to_list(yaml_property)
         if "Copilot" not in yaml_property:
             yaml_property.append(", Copilot")
 
