@@ -28,7 +28,7 @@ def check_for_singleline_flashcard_style_section_in_note(
 
 
 def check_for_multiline_flashcard_style_section_in_note(
-    all_file_lines: List[str],
+    all_file_lines: List[str], file_name: str
 ) -> list[int]:
     """Returns the line numbers of the flashcard style sections if they exists. None otherwise.
     all_file_lines: All the lines of the file.
@@ -142,6 +142,43 @@ def remove_yaml_tag(tag: str, all_file_lines: List[str], filename: str) -> List[
         if tag not in yaml_tags:
             raise ValueError(f"Tag '{tag}' not found in {filename}.")
         yaml_tags.remove(tag)
+        yaml_tags = ", ".join(yaml_tags)
+        yaml_tags = f"[{yaml_tags}]"
+        yaml_tag_property = f"tags: {yaml_tags}\n"
+        all_file_lines[index] = yaml_tag_property
+        return all_file_lines
+    return all_file_lines
+
+
+def add_yaml_tag(tag: str, all_file_lines: List[str], filename: str) -> List[str]:
+    """Adds a tag to a file's yaml section.
+    tag: The tag to add to the yaml tag section.
+    all_file_lines: All the lines of the file.
+
+    returns all file lines with the tag added.
+    """
+    yaml_line = "---\n"
+
+    in_yaml_section = False
+    for index, line in enumerate(all_file_lines):
+        if not in_yaml_section:
+            if line != yaml_line:
+                continue
+            else:
+                in_yaml_section = True
+        yaml_property = line.split(":")
+        if yaml_property[0] != "tags":
+            continue
+        yaml_tags = yaml_property[1]
+        yaml_tags = yaml_tags.replace("[", "")
+        yaml_tags = yaml_tags.replace("]", "")
+        yaml_tags = yaml_tags.replace("\n", "")
+        yaml_tags = yaml_tags.split(",")
+        yaml_tags = [x.strip() for x in yaml_tags]
+
+        if tag in yaml_tags:
+            raise ValueError(f"Tag '{tag}' already found in {filename}.")
+        yaml_tags.append(tag)
         yaml_tags = ", ".join(yaml_tags)
         yaml_tags = f"[{yaml_tags}]"
         yaml_tag_property = f"tags: {yaml_tags}\n"
