@@ -72,7 +72,57 @@ def check_for_multiline_flashcard_style_section_in_note(
     return question_lines
 
 
-def yaml_tags_to_list(yaml_property: str) -> list[str]:
+def extract_tags_from_note_basenames(
+    input_directory: Path,
+    all_files: dict[str, Path],
+    notes_for_tag_extraction: list[str],
+) -> dict:
+    """
+    Extracts yaml tags from notes specified in notes_for_tag_extraction.
+
+    Parameters:
+        input_directory (Path): The input directory where the notes are located.
+        all_files (dict[str, Path]): A dictionary containing all the file basenames and their paths.
+        notes_for_tag_extraction (list[str]): A list of note basenames to extract tags from.
+
+    Returns:
+        dict: A dictionary with the following keys:
+            - note (str): The full path of the note.
+            - yaml_tags (list[str]): The list of yaml tags extracted from the note.
+            - line_number_of_tags (int): The line number of the yaml tags section.
+            - yaml_section_exists (bool): Indicates whether the yaml section exists in the note.
+    """
+    (
+        notes_for_tag_extraction_full_path,
+        unfindable_files,
+    ) = help_funcs.convert_file_base_names_to_full_path_V2(
+        notes_for_tag_extraction, all_files, input_directory
+    )
+    if len(unfindable_files) > 0:
+        raise ValueError(
+            f"Unable to find file ({unfindable_files}) to extract yaml tags from."
+        )
+
+    yaml_tags_dict = {}
+    for note in notes_for_tag_extraction_full_path:
+        with open(note, "r", encoding="utf-8") as f:
+            all_file_lines = f.readlines()
+        (
+            yaml_tags,
+            line_number_of_tags,
+            yaml_section_exists,
+        ) = return_yaml_property("allowedTags", all_file_lines)
+        if yaml_tags == None:
+            raise ValueError(f"allowedTags property not found in {note}")
+        yaml_tags = yaml_list_type_property_to_list(yaml_tags)
+        yaml_tags_dict["note"] = note
+        yaml_tags_dict["yaml_tags"] = yaml_tags
+        yaml_tags_dict["line_number_of_tags"] = line_number_of_tags
+        yaml_tags_dict["yaml_section_exists"] = yaml_section_exists
+    return yaml_tags_dict
+
+
+def yaml_list_type_property_to_list(yaml_property: str) -> list[str]:
     """Converts a yaml property to a list of strings.
     yaml_property: The yaml property to convert to a list of strings.
     """
@@ -511,7 +561,7 @@ class FileTreeNode:
 
 
 def return_linked_files_V4(
-    root_directory: str,
+    root_directory: Path,
     max_link_depth: int,
     current_file: Path,
     _parent_node: FileTreeNode | None = None,
@@ -580,7 +630,7 @@ def return_linked_files_V4(
 
 if __name__ == "__main__":
     start_file_path = Path(default_values.Default_File)
-    vault_folder = default_values.Default_Input_Directory
+    vault_folder = Path(default_values.Default_Input_Directory)
     result = return_linked_files_V4(
         vault_folder,
         max_link_depth=3125,

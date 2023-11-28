@@ -7,7 +7,7 @@ import default_values
 
 def map_Copilot_tag_to_ai_note(input_directory: str, tag_for_search: str):
     all_files = help_funcs.return_all_paths_in_directory_as_dictionary(
-        input_directory, file_type=".md"
+        Path(input_directory), file_type=".md"
     )
     filtered_files: dict[str, Path] = {}
     for name, path in all_files.items():

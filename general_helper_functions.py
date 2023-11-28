@@ -90,7 +90,7 @@ def return_all_full_file_paths(INPUT_DIRECTORY):
 
 
 def return_all_paths_in_directory_as_dictionary(
-    INPUT_DIRECTORY, file_type: str | None = None
+    INPUT_DIRECTORY: Path, file_type: str | None = None
 ) -> dict[str, Path]:
     """Returns a dictionary of all the files in the input directory.
     key = file name
@@ -154,7 +154,7 @@ def convert_file_base_names_to_full_path(
 def convert_file_base_names_to_full_path_V2(
     linked_file_base_names: list[str],
     all_files_in_base_directory: dict[str, Path],
-    root_directory,
+    root_directory: str | Path,
 ) -> tuple[list[Path], list[str]]:
     """This function needs refactoring but im too lazy to do so now.
     Here's what is does:

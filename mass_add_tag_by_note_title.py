@@ -4,7 +4,7 @@ import obsidian_helper_functions as obs_funcs
 import default_values
 
 
-def mass_add_tag(input_directory, must_contain):
+def mass_add_tag(input_directory, must_contain, tag_to_add: str):
     # Copilot Conversation
 
     all_files = help_funcs.return_all_paths_in_directory_as_dictionary(
@@ -30,42 +30,51 @@ def mass_add_tag(input_directory, must_contain):
                 yaml_property,
                 line_number,
                 yaml_section_exists,
+                tag_to_add,
             )
             with open(path, "w", encoding="utf-8") as f:
                 f.write("".join(all_file_lines))
                 print(f"altered file: {file}")
 
 
-def _extend_tag_list(yaml_property):
-    if yaml_property == None:
-        yaml_property = ["Copilot"]
+def _extend_tag_list(yaml_property_in_file, tag_to_add: str):
+    if yaml_property_in_file == None:
+        yaml_property_in_file = tag_to_add
     else:
-        yaml_property = obs_funcs.yaml_tags_to_list(yaml_property)
-        if "Copilot" not in yaml_property:
-            yaml_property.append(", Copilot")
+        yaml_property_in_file = obs_funcs.yaml_list_type_property_to_list(
+            yaml_property_in_file
+        )
+        if tag_to_add not in yaml_property_in_file:
+            yaml_property_in_file.append(f", {tag_to_add}")
 
     # convert back to string
-    yaml_property_text = f"[{''.join(yaml_property)}]"
+    yaml_property_text = f"[{''.join(yaml_property_in_file)}]"
 
     return yaml_property_text
 
 
 def _return_updated_file_metadata(
-    file, path, all_file_lines, yaml_property, line_number, yaml_section_exists
+    file,
+    path,
+    all_file_lines,
+    yaml_property_in_file,
+    line_number,
+    yaml_section_exists,
+    tag_to_add: str,
 ) -> list[str]:
-    yaml_property = _extend_tag_list(yaml_property)
+    yaml_property_in_file = _extend_tag_list(yaml_property_in_file, tag_to_add)
     if not yaml_section_exists:
         # create front matter section
         if len(all_file_lines):
             print(f"WARNING: completely empty file found: {file} at {path}")
         all_file_lines.append("---\n")
-        all_file_lines.insert(1, f"tags: {yaml_property}\n")
+        all_file_lines.insert(1, f"tags: {yaml_property_in_file}\n")
         all_file_lines.append("---\n")
     else:
         if not line_number:
-            all_file_lines.insert(1, f"tags: {yaml_property}\n")
+            all_file_lines.insert(1, f"tags: {yaml_property_in_file}\n")
         else:
-            all_file_lines[line_number] = f"tags: {yaml_property}\n"
+            all_file_lines[line_number] = f"tags: {yaml_property_in_file}\n"
     return all_file_lines
 
 
@@ -73,4 +82,4 @@ if __name__ == "__main__":
     input_directory = help_funcs.get_input_directory(
         DEFAULT_DIRECTORY=default_values.Default_Input_Directory
     )
-    mass_add_tag(input_directory, must_contain="Chat-")
+    mass_add_tag(input_directory, must_contain="Chat-", tag_to_add="Copilot")

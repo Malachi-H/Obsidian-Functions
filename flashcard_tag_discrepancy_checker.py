@@ -3,6 +3,7 @@ from pprint import pprint
 import general_helper_functions as help_funcs
 import obsidian_helper_functions as obs_funcs
 import default_values
+from typing import Iterable
 
 
 def handle_flashcard_tag_but_no_flashcard_section(
@@ -82,7 +83,7 @@ def handle_no_flashcard_tag_but_has_flashcard_section(
             print("continuing program..\n\n")
 
 
-def check_for_flashcard_tag_discrepancy(input_directory: str):
+def check_for_flashcard_tag_discrepancy(input_directory: Path):
     all_files = help_funcs.return_all_paths_in_directory_as_dictionary(
         input_directory, file_type=".md"
     )
@@ -91,45 +92,28 @@ def check_for_flashcard_tag_discrepancy(input_directory: str):
         "School Subject Flashcard Tags",
     ]
 
-    (
-        yaml_allowed_flashcard_map_notes,
-        unfindable_files,
-    ) = help_funcs.convert_file_base_names_to_full_path_V2(
-        yaml_allowed_flashcard_map_notes, all_files, input_directory
+    yaml_tags_dict = obs_funcs.extract_tags_from_note_basenames(
+        input_directory, all_files, yaml_allowed_flashcard_map_notes
     )
-
-    yaml_tags_list = []
-    for note in yaml_allowed_flashcard_map_notes:
-        with open(note, "r", encoding="utf-8") as f:
-            all_file_lines = f.readlines()
-        (
-            yaml_tags,
-            line_number_of_tags,
-            yaml_section_exists,
-        ) = obs_funcs.return_yaml_property("allowedTags", all_file_lines)
-        if yaml_tags == None:
-            raise ValueError(f"allowedTags property not found in {note}")
-        yaml_tags = obs_funcs.yaml_tags_to_list(yaml_tags)
-        yaml_tags_list.extend(yaml_tags)
 
     for name, path in all_files.items():
         with open(path, "r", encoding="utf-8") as f:
             all_file_lines = f.readlines()
-        for tag in yaml_tags_list:
+        yaml_tags: list[str] = yaml_tags_dict["yaml_tags"]
+        for tag in yaml_tags:
             if obs_funcs.has_yaml_tag(tag, all_file_lines):
                 handle_flashcard_tag_but_no_flashcard_section(
                     all_file_lines, path, name, tag
                 )
 
         handle_no_flashcard_tag_but_has_flashcard_section(
-            all_file_lines, path, name, yaml_tags_list
+            all_file_lines, path, name, yaml_tags
         )
-
-
+        
 if __name__ == "__main__":
-    input_directory = help_funcs.get_input_directory(
+    input_directory = Path(help_funcs.get_input_directory(
         DEFAULT_DIRECTORY=default_values.Default_Input_Directory
-    )
+    ))
     print()
     check_for_flashcard_tag_discrepancy(input_directory)
     print("Program Finished!")
