@@ -5,7 +5,7 @@ import obsidian_helper_functions as obs_funcs
 import default_values
 
 
-def map_Copilot_tag_to_ai_note(input_directory: str, tag_for_search: str):
+def map_to_ai_note_by_Copilot_tag(input_directory: str, tag_for_search: str):
     all_files = help_funcs.return_all_paths_in_directory_as_dictionary(
         Path(input_directory), file_type=".md"
     )
@@ -29,7 +29,11 @@ def map_Copilot_tag_to_ai_note(input_directory: str, tag_for_search: str):
         path = str(path).replace("\\", "/")
         file_map.append(f"[[{path}|{name}]]")
 
-    with open(f"{input_directory}\\Chat GPT Queries.md", "w", encoding="utf-8") as f:
+    with open(
+        f"{input_directory}\\copilot-conversations\\Chat GPT Queries.md",
+        "w",
+        encoding="utf-8",
+    ) as f:
         f.write("\n".join(file_map))
 
 
@@ -37,4 +41,4 @@ if __name__ == "__main__":
     input_directory = help_funcs.get_input_directory(
         DEFAULT_DIRECTORY=default_values.Default_Input_Directory
     )
-    map_Copilot_tag_to_ai_note(input_directory, tag_for_search="Copilot")
+    map_to_ai_note_by_Copilot_tag(input_directory, tag_for_search="Copilot")
